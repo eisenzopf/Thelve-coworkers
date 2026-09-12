@@ -130,6 +130,21 @@ h2{font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
 }
 .sw[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.06)}
 .hue-row{display:flex;align-items:center;gap:12px;margin-top:13px}
+.axis-row{display:flex;align-items:center;gap:12px}
+.axis-val{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);min-width:96px;text-align:right;font-variant-numeric:tabular-nums}
+.stops{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}
+.stop{border:0;background:transparent;padding:2px 0;font-size:11.5px;color:var(--ink-3);cursor:pointer;font-family:var(--mono);letter-spacing:.02em}
+.stop:hover{color:var(--ink)}
+.stop[aria-pressed="true"]{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+.stop + .stop::before{content:"·";margin-right:6px;color:var(--rule);text-decoration:none}
+.matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media (max-width:820px){.matrix{grid-template-columns:repeat(2,1fr)}}
+.cell{background:var(--panel);border:1px solid var(--rule-soft);border-radius:16px;padding:20px 16px 14px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.cell svg{width:96px;height:96px;margin-bottom:10px}
+.cell-name{font-family:var(--display);font-weight:700;font-size:15px}
+.cell-spec{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
+.axis-ramp{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:22px;padding:18px 20px;background:var(--panel);border:1px solid var(--rule-soft);border-radius:16px}
+.axis-ramp .ramp-item span:first-child{display:block;width:58px;height:58px}
 input[type=range]{flex:1;accent-color:var(--sel);height:20px}
 .hue-val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
 
@@ -284,6 +299,28 @@ footer{
       </div>
 
       <div class="field">
+        <span class="lab">Depth</span>
+        <div class="axis-row">
+          <input type="range" id="depth" min="0" max="1" step=".02" value="1" aria-label="Depth">
+          <span class="axis-val" id="depth-val">Rendered</span>
+        </div>
+        <div class="stops" id="depth-stops"></div>
+      </div>
+
+      <div class="field">
+        <span class="lab">Border</span>
+        <div class="axis-row">
+          <input type="range" id="border" min="0" max="4" step=".05" value="0" aria-label="Border width">
+          <span class="axis-val" id="border-val">None</span>
+        </div>
+        <div class="stops" id="border-stops"></div>
+        <div class="toggles" id="border-color" style="margin-top:12px">
+          <button class="tg" data-bc="contour" aria-pressed="true">Contour</button>
+          <button class="tg" data-bc="ink" aria-pressed="false">Ink</button>
+        </div>
+      </div>
+
+      <div class="field">
         <span class="lab">Options</span>
         <div class="toggles">
           <button class="tg" id="tg-eyes" aria-pressed="true">Eyes</button>
@@ -328,6 +365,15 @@ footer{
         </div>
       </div>
     </div>
+  </section>
+
+  <section class="insitu">
+    <div class="sec-head">
+      <h2>Two axes</h2>
+      <p class="sec-note">Depth and border move independently — every corner is somewhere worth landing</p>
+    </div>
+    <div class="matrix" id="matrix"></div>
+    <div class="axis-ramp" id="depth-ramp"></div>
   </section>
 
   <section class="handoff">
@@ -381,11 +427,20 @@ avatarSVG({ name: "Inbox Triage", eyes: false })</pre>
 <div class="toast" id="toast">Copied</div>
 
 <script type="module">
-import { SHAPES, PALETTE, avatarSVG, buildPath, toHex } from "../src/index.js";
+import { SHAPES, PALETTE, avatarSVG, buildPath, toHex, DEPTH_STOPS, BORDER_STOPS } from "../src/index.js";
 
 /* ==================== page ==================== */
 const $ = s => document.querySelector(s);
-const state = { shape:"pebble", color:PALETTE[0], hue:PALETTE[0].h, eyes:true, shadow:true, motion:true };
+const state = {
+  shape:"pebble", color:PALETTE[0], hue:PALETTE[0].h,
+  depth:1, border:0, borderColor:"contour",
+  eyes:true, shadow:true, motion:true,
+};
+
+/** Nearest named stop, for the readout beside each slider. */
+function nearest(stops, v){
+  return stops.reduce((a, b) => Math.abs(b.value - v) < Math.abs(a.value - v) ? b : a);
+}
 
 /* ---- masthead strip ---- */
 $("#strip").innerHTML = SHAPES.map((s, i) => {
@@ -402,6 +457,19 @@ $("#cast").innerHTML = SHAPES.map((s, i) => {
        + '<span class="tile-blurb">' + s.blurb + '</span></button>';
 }).join("");
 
+/* ---- axis stop chips ---- */
+const renderStops = (el, stops, key) => {
+  el.innerHTML = stops.map((st, i) =>
+    '<button class="stop" data-i="' + i + '" aria-pressed="false">' + st.name + '</button>').join("");
+  el.addEventListener("click", e => {
+    const b = e.target.closest(".stop"); if (!b) return;
+    state[key] = stops[+b.dataset.i].value;
+    render();
+  });
+};
+renderStops($("#depth-stops"), DEPTH_STOPS, "depth");
+renderStops($("#border-stops"), BORDER_STOPS, "border");
+
 /* ---- swatches ---- */
 $("#swatches").innerHTML = PALETTE.map((p, i) =>
   '<button class="sw" data-i="' + i + '" aria-pressed="false" title="' + p.name + '" aria-label="' + p.name + '"'
@@ -417,12 +485,14 @@ const ROSTER = [
   { name:"Pipeline Watch",   last:"nightly run green, nothing outstanding",                  time:"6:02",  status:"idle" }
 ];
 const CHIP = { work:'<span class="chip work">working</span>', need:'<span class="chip need">needs you</span>', idle:"" };
-$("#roster").innerHTML = ROSTER.map(r =>
-  '<div class="row' + (r.status === "idle" ? " still" : "") + '"' + (r.status === "idle" ? ' style="opacity:.62"' : "") + '>'
-  + avatarSVG({ name:r.name })
-  + '<div class="row-mid"><div class="row-name">' + r.name + CHIP[r.status] + '</div>'
-  + '<div class="row-last">' + r.last + '</div></div>'
-  + '<div class="row-time">' + r.time + '</div></div>').join("");
+function renderRoster(){
+  $("#roster").innerHTML = ROSTER.map(r =>
+    '<div class="row' + (r.status === "idle" ? " still" : "") + '"' + (r.status === "idle" ? ' style="opacity:.62"' : "") + '>'
+    + avatarSVG({ name:r.name, depth:state.depth, border:state.border, borderColor:state.borderColor })
+    + '<div class="row-mid"><div class="row-name">' + r.name + CHIP[r.status] + '</div>'
+    + '<div class="row-last">' + r.last + '</div></div>'
+    + '<div class="row-time">' + r.time + '</div></div>').join("");
+}
 
 $("#pile").innerHTML = ROSTER.slice(0, 5).map(r => avatarSVG({ name:r.name })).join("")
   + '<div class="pile-more">+3</div>';
@@ -436,6 +506,7 @@ $("#st-3").classList.add("still");
 function currentSVG(extra){
   return avatarSVG(Object.assign({
     shape: state.shape, hue: state.hue, sat: state.color.s, lum: state.color.l,
+    depth: state.depth, border: state.border, borderColor: state.borderColor,
     eyes: state.eyes, shadow: state.shadow
   }, extra || {}));
 }
@@ -457,6 +528,41 @@ function render(){
     + currentSVG() + '</span><span class="px">' + px + '</span></div>').join("");
   $("#ramp").querySelectorAll("svg").forEach(s => { s.style.width = "100%"; s.style.height = "100%"; });
   $("#ramp").classList.toggle("still", !state.motion);
+
+  const dStop = nearest(DEPTH_STOPS, state.depth);
+  const bStop = nearest(BORDER_STOPS, state.border);
+  $("#depth").value = state.depth;
+  $("#border").value = state.border;
+  $("#depth-val").textContent = dStop.name + " · " + state.depth.toFixed(2);
+  $("#border-val").textContent = bStop.name + " · " + state.border.toFixed(2);
+  document.querySelectorAll("#depth-stops .stop").forEach((el, i) =>
+    el.setAttribute("aria-pressed", String(DEPTH_STOPS[i].value === state.depth)));
+  document.querySelectorAll("#border-stops .stop").forEach((el, i) =>
+    el.setAttribute("aria-pressed", String(BORDER_STOPS[i].value === state.border)));
+  document.querySelectorAll("#border-color .tg").forEach(el =>
+    el.setAttribute("aria-pressed", String(el.dataset.bc === state.borderColor)));
+
+  // The 2x2: the four corners of the two axes, so the combination space is
+  // visible without touching a slider.
+  const CORNERS = [
+    { name:"Silhouette",      depth:0, border:0,   note:"flat · no line" },
+    { name:"Sticker",         depth:0, border:2.5, note:"flat · medium" },
+    { name:"Rendered",        depth:1, border:0,   note:"full · no line" },
+    { name:"Rendered + line", depth:1, border:1.5, note:"full · light" },
+  ];
+  $("#matrix").innerHTML = CORNERS.map(o =>
+    '<div class="cell">' + currentSVG({ depth:o.depth, border:o.border })
+    + '<span class="cell-name">' + o.name + '</span>'
+    + '<span class="cell-spec">' + o.note + '</span></div>').join("");
+  $("#matrix").classList.toggle("still", !state.motion);
+
+  $("#depth-ramp").innerHTML = [0, 0.25, 0.5, 0.75, 1].map(d =>
+    '<div class="ramp-item"><span>' + currentSVG({ depth:d }) + '</span>'
+    + '<span class="px">' + d.toFixed(2) + '</span></div>').join("");
+  $("#depth-ramp").querySelectorAll("svg").forEach(el => { el.style.width = "100%"; el.style.height = "100%"; });
+  $("#depth-ramp").classList.toggle("still", !state.motion);
+
+  renderRoster();
 
   document.querySelectorAll(".tile").forEach(t =>
     t.setAttribute("aria-pressed", String(t.dataset.shape === state.shape)));
@@ -480,6 +586,12 @@ $("#swatches").addEventListener("click", e => {
   state.color = PALETTE[+b.dataset.i]; state.hue = state.color.h; render();
 });
 $("#hue").addEventListener("input", e => { state.hue = +e.target.value; render(); });
+$("#depth").addEventListener("input", e => { state.depth = +e.target.value; render(); });
+$("#border").addEventListener("input", e => { state.border = +e.target.value; render(); });
+$("#border-color").addEventListener("click", e => {
+  const b = e.target.closest("[data-bc]"); if (!b) return;
+  state.borderColor = b.dataset.bc; render();
+});
 
 function toggle(id, key){
   $(id).addEventListener("click", () => {

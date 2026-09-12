@@ -26,6 +26,15 @@ npm run contact-sheet   # regenerate docs/cast.svg after changing shapes or hues
   hydration. The animation delay is seeded off the name instead, on purpose.
 - **`name` is escaped before it reaches the markup.** The output is injected as
   HTML by consumers, so anything interpolated into the SVG needs `esc()`.
+- **`depth` scales opacity, not colour, for `rim`/`cast`/`eye`** — a dimming
+  light does not change hue. Only `light` and `shade` collapse onto `core`.
+  `contour` is deliberately outside the depth axis; the outline is its own.
+- **The border must stay an inside stroke** (drawn at `border * 2`, clipped). A
+  centred stroke would grow the silhouette and break the constant-area
+  normalisation that keeps shapes the same size next to each other.
+- **Anything that changes the look must join the id key** in `avatarSVG` —
+  `depth`, `border` and `borderColor` all do. Miss one and two avatars share a
+  gradient they shouldn't.
 - **`buildPath` is cached per shape id.** Shape definitions are effectively
   immutable at runtime; mutating one after first render will not take effect.
 

@@ -18,10 +18,13 @@ import { avatarSVG } from "./avatar.js";
 /**
  * @param {AvatarProps} props
  */
-export function Avatar({ name, shape, hue, sat, lum, size, eyes, shadow, title, className, style }) {
+export function Avatar({
+  name, shape, hue, sat, lum, depth, border, borderColor, size, eyes, shadow, title,
+  className, style,
+}) {
   const html = useMemo(
-    () => avatarSVG({ name, shape, hue, sat, lum, size, eyes, shadow, title }),
-    [name, shape, hue, sat, lum, size, eyes, shadow, title],
+    () => avatarSVG({ name, shape, hue, sat, lum, depth, border, borderColor, size, eyes, shadow, title }),
+    [name, shape, hue, sat, lum, depth, border, borderColor, size, eyes, shadow, title],
   );
 
   return createElement("span", {

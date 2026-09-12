@@ -29,6 +29,11 @@ export interface Hue {
   readonly l: number;
 }
 
+export interface NamedStop {
+  readonly name: string;
+  readonly value: number;
+}
+
 export interface AvatarPalette {
   readonly light: string;
   readonly core: string;
@@ -36,6 +41,7 @@ export interface AvatarPalette {
   readonly rim: string;
   readonly eye: string;
   readonly cast: string;
+  readonly contour: string;
 }
 
 export interface AvatarOptions {
@@ -47,6 +53,17 @@ export interface AvatarOptions {
   hue?: number | undefined;
   sat?: number | undefined;
   lum?: number | undefined;
+  /** 0 flat … 1 fully rendered. Default 1. */
+  depth?: number | undefined;
+  /** Outline width in viewBox units — roughly 0–4. Drawn inward, so the silhouette never grows. Default 0. */
+  border?: number | undefined;
+  /**
+   * `"contour"` (default) derives an ink line from the body colour and stays
+   * self-contained. `"ink"` emits `currentColor`, so the outline follows the
+   * page theme — the one setting that makes an avatar depend on its host.
+   * Any other value is used as a CSS colour verbatim.
+   */
+  borderColor?: "contour" | "ink" | (string & {}) | undefined;
   /** Sets width/height attributes. Omit and size the `.av` element in CSS. */
   size?: number | undefined;
   /** Default true. */
@@ -65,7 +82,7 @@ export declare function superR(t: number, nTop: number, nBot: number): number;
 export declare function closedSpline(points: readonly (readonly [number, number])[]): string;
 /** SVG path data for a shape, normalised into a 100 × 100 viewBox. Cached per shape. */
 export declare function buildPath(shape: string | ShapeDef): string;
-export declare function palette(h: number, s: number, l: number): AvatarPalette;
+export declare function palette(h: number, s: number, l: number, depth?: number): AvatarPalette;
 export declare function toHex(h: number, s: number, l: number): string;
 
 /** The stable shape and hue a given name maps to. */
@@ -73,3 +90,9 @@ export declare function avatarFor(name: string): { shape: ShapeDef; color: Hue }
 
 /** A complete, self-contained SVG element as a string. */
 export declare function avatarSVG(options?: AvatarOptions): string;
+
+/** Named stops along the depth axis: Flat, Soft, Satin, Rendered. */
+export declare const DEPTH_STOPS: readonly NamedStop[];
+
+/** Named stops along the border axis, in viewBox units: None … Heavy. */
+export declare const BORDER_STOPS: readonly NamedStop[];

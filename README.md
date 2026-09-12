@@ -46,6 +46,50 @@ avatarSVG({ name: "Inbox Triage", eyes: false, shadow: false })
 avatarSVG({ name: "Release Notes", hue: 300 })   // same coworker, different colour
 ```
 
+## Two axes: `depth` and `border`
+
+How rendered the avatars look is a dial, not a fixed style.
+
+```js
+avatarSVG({ name: "Call QA", depth: 0 })                    // flat silhouette
+avatarSVG({ name: "Call QA", depth: 0, border: 2.5 })       // sticker
+avatarSVG({ name: "Call QA" })                              // rendered (default)
+avatarSVG({ name: "Call QA", border: 1.5 })                 // rendered, with a contour
+```
+
+**`depth`** `0 … 1`, default `1`. Drives all six shading layers at once, each on
+its own curve. Flat is not "3D turned down" — at `0` the form gradient collapses
+to a solid fill and every other layer is dropped entirely, giving you a clean
+designed mark (and a 2 KB SVG instead of 8 KB). Two rules shape the middle: the
+specular fades out first, because it is the strongest "this is rendered" cue and
+carrying it through the middle just makes mud; and gloss is highlight
+*tightness*, not opacity, so the highlight shrinks and brightens as depth rises
+rather than merely getting more opaque. Named stops are in `DEPTH_STOPS` —
+Flat · Soft · Satin · Rendered.
+
+**`border`** `0 … ~4`, default `0`, in viewBox units, so it scales with the
+avatar. Stroked at twice the width and clipped to the silhouette, which makes it
+an *inside* stroke: the outer edge never moves at any weight, so a bordered
+avatar is exactly the same size as an unbordered one beside it in a list. Named
+stops are in `BORDER_STOPS` — None · Hairline · Light · Medium · Heavy.
+
+**`borderColor`** is `"contour"` by default, an ink line derived from the body
+colour — self-contained and good on any ground. `"ink"` emits `currentColor`
+instead, for the true cartoon outline; that is the one setting that makes an
+avatar depend on its page, so set `color` on an ancestor and it follows the
+theme. Any other value is used as a CSS colour verbatim.
+
+The two axes are independent, and all four corners are places worth landing:
+
+|  | `border: 0` | `border: 2.5` |
+|---|---|---|
+| **`depth: 0`** | flat silhouette mark | sticker / cartoon |
+| **`depth: 1`** | the default render | render with a contour — useful on busy or photographic backgrounds |
+
+Below about 20 px a hairline border is a fraction of a device pixel and will
+shimmer or vanish, and high depth muddies a small silhouette. Both are worth a
+size check rather than magic auto-behaviour.
+
 The returned SVG carries no width or height unless you pass `size` — size the
 `.av` element in CSS and it scales cleanly from 16 px to whatever you need.
 
@@ -58,12 +102,13 @@ The returned SVG carries no width or height unless you pass `size` — size the
 | `SHAPES` | The fourteen shape definitions. |
 | `PALETTE` | The fourteen hues, with names. |
 | `buildPath(shape)` | Path data for one silhouette, normalised into a 100 × 100 box. Cached. |
-| `palette(h, s, l)` | The six colours one avatar is lit with. |
+| `palette(h, s, l, depth?)` | The seven colours one avatar is lit with. |
+| `DEPTH_STOPS` / `BORDER_STOPS` | Named stops for building pickers. |
 | `toHex(h, s, l)` | For showing a swatch value in a UI. |
 | `shapeById(id)` | Lookup, falling back to Pebble on an unknown id. |
 
-**`AvatarOptions`** — `name`, `shape`, `hue`, `sat`, `lum`, `size`, `eyes`,
-`shadow`, `title`. Types ship in `index.d.ts`.
+**`AvatarOptions`** — `name`, `shape`, `hue`, `sat`, `lum`, `depth`, `border`,
+`borderColor`, `size`, `eyes`, `shadow`, `title`. Types ship in `index.d.ts`.
 
 ## The cast
 
@@ -96,6 +141,7 @@ upper left; a bounce rim stroked along the path and clipped to it, so only the
 inner half shows; a thin key rim on the top edge; a specular that lags the body
 as it floats. The bounce is the layer that does the work — it is the lightest,
 most saturated colour in the set and it is hue-shifted away from the body.
+`depth` scales all four; the light never changes direction, only intensity.
 
 **Ids are derived from the appearance, not a counter**, so server and client
 always agree and hydration never mismatches. The blink and float are seeded off

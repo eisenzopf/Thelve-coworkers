@@ -18,10 +18,13 @@
 }
 
 /* The highlight lags the body by a hair, which is what reads as a curved surface
-   turning under a fixed light rather than a sticker sliding around. */
+   turning under a fixed light rather than a sticker sliding around. Its throw
+   follows `--av-depth` (set on each avatar) so a faint highlight on a flatter
+   avatar doesn't swing as far as a bright one. The float itself is deliberately
+   NOT scaled — motion is not a form cue, and a flat mark may still be alive. */
 @keyframes av-spec {
   0%, 100% { transform: translate(0, 0); }
-  50%      { transform: translate(1.7px, -0.9px); }
+  50%      { transform: translate(calc(1.7px * var(--av-depth, 1)), calc(-0.9px * var(--av-depth, 1))); }
 }
 
 @keyframes av-blink {

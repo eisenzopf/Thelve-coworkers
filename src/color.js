@@ -1,10 +1,14 @@
 /**
- * The five colours one avatar is lit with.
+ * The colours one avatar is lit with.
  *
- * The light rig never changes: a key light from the upper left, a bounce off the
- * lower right, eight per cent ambient. `rim` is the bounce — it is the lightest
- * and most saturated of the set and it is hue-shifted away from the body, which
- * is the single thing that makes a flat silhouette read as a rendered solid.
+ * The light rig never changes direction: a key light from the upper left, a
+ * bounce off the lower right, eight per cent ambient. What `depth` changes is
+ * how far `light` and `shade` travel from `core` — at depth 0 they collapse onto
+ * it and the form gradient becomes a flat fill.
+ *
+ * `rim`, `eye` and `cast` keep their colour at every depth; it is their opacity
+ * that the renderer scales, which is what a light actually does when it dims.
+ * `contour` is independent of depth altogether — the outline is its own axis.
  */
 
 /** @param {number} v */
@@ -19,32 +23,39 @@ const r2 = (n) => Math.round(n * 100) / 100;
  * @param {number} l
  * @returns {string} a comma-form `hsl()`, which pastes into design tools cleanly
  */
-const hsl = (h, s, l) => `hsl(${(((h % 360) + 360) % 360)}, ${r2(clamp(s))}%, ${r2(clamp(l))}%)`;
+const hsl = (h, s, l) =>
+  `hsl(${(((Math.round(h) % 360) + 360) % 360)}, ${r2(clamp(s))}%, ${r2(clamp(l))}%)`;
 
 /**
  * @typedef {object} AvatarPalette
- * @property {string} light  lit face, upper left
- * @property {string} core   body colour at the terminator
- * @property {string} shade  unlit face
- * @property {string} rim    bounce light along the lower-right edge
+ * @property {string} light   lit face, upper left
+ * @property {string} core    body colour at the terminator
+ * @property {string} shade   unlit face
+ * @property {string} rim     bounce light along the lower-right edge
  * @property {string} eye
- * @property {string} cast   cast shadow, tinted rather than grey
+ * @property {string} cast    cast shadow, tinted rather than grey
+ * @property {string} contour outline; darker than shade and independent of depth
  */
 
 /**
- * @param {number} h  0–359
- * @param {number} s  0–100
- * @param {number} l  0–100
+ * @param {number} h      0–359
+ * @param {number} s      0–100
+ * @param {number} l      0–100
+ * @param {number} [depth] 0 = flat fill, 1 = full modelling
  * @returns {AvatarPalette}
  */
-export function palette(h, s, l) {
+export function palette(h, s, l, depth = 1) {
+  const d = Math.max(0, Math.min(1, depth));
   return {
-    light: hsl(h + 10, s * 0.9, l + 26),
+    light: hsl(h + 10 * d, s * (1 - 0.1 * d), l + 26 * d),
     core: hsl(h, s, l),
-    shade: hsl(h - 7, s * 0.95, Math.max(l - 26, 15)),
+    // The floor has to be written this way round: at depth 0 the shade must land
+    // exactly on core, even for a body colour darker than the floor itself.
+    shade: hsl(h - 7 * d, s * (1 - 0.05 * d), Math.max(l - 26 * d, Math.min(l, 15))),
     rim: hsl(h + 15, s * 1.06, Math.min(l + 22, 86)),
     eye: hsl(h + 4, s * 0.5, Math.max(l - 43, 11)),
     cast: hsl(h - 4, s * 0.7, Math.max(l - 34, 14)),
+    contour: hsl(h - 8, s * 0.9, Math.max(l - 38, 10)),
   };
 }
 
