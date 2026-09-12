@@ -20,7 +20,8 @@ const TYPES = {
 createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   let path = decodeURIComponent(url.pathname);
-  if (path === "/") path = "/demo/index.html";
+  if (path === "/") path = "/demo/";
+  if (path.endsWith("/")) path += "index.html";
 
   // Refuse to serve anything that climbs out of the repo.
   const file = join(ROOT, normalize(path).replace(/^(\.\.[/\\])+/, ""));

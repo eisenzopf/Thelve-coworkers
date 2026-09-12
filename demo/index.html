@@ -478,22 +478,27 @@ const ROSTER = [
   { name:"Pipeline Watch",   last:"nightly run green, nothing outstanding",                  time:"6:02",  status:"idle" }
 ];
 const CHIP = { work:'<span class="chip work">working</span>', need:'<span class="chip need">needs you</span>', idle:"" };
-function renderRoster(){
+/** Everything that shows the avatars in a UI, so all of it follows the slider. */
+function renderInSitu(){
+  const depth = state.depth;
+
   $("#roster").innerHTML = ROSTER.map(r =>
     '<div class="row' + (r.status === "idle" ? " still" : "") + '"' + (r.status === "idle" ? ' style="opacity:.62"' : "") + '>'
-    + avatarSVG({ name:r.name, depth:state.depth })
+    + avatarSVG({ name:r.name, depth })
     + '<div class="row-mid"><div class="row-name">' + r.name + CHIP[r.status] + '</div>'
     + '<div class="row-last">' + r.last + '</div></div>'
     + '<div class="row-time">' + r.time + '</div></div>').join("");
+
+  $("#pile").innerHTML = ROSTER.slice(0, 5).map(r => avatarSVG({ name:r.name, depth })).join("")
+    + '<div class="pile-more">+3</div>';
+
+  // No cast shadow here: these three sit inside status affordances, and a
+  // shadow under a dashed ring just reads as noise.
+  $("#st-1").innerHTML = avatarSVG({ name:"Simulation Runner", depth, size:34, shadow:false });
+  $("#st-2").innerHTML = avatarSVG({ name:"Call QA", depth, size:34, shadow:false });
+  $("#st-3").innerHTML = avatarSVG({ name:"Pipeline Watch", depth, size:34, shadow:false });
+  $("#st-3").classList.add("still");
 }
-
-$("#pile").innerHTML = ROSTER.slice(0, 5).map(r => avatarSVG({ name:r.name })).join("")
-  + '<div class="pile-more">+3</div>';
-
-$("#st-1").innerHTML = avatarSVG({ name:"Simulation Runner", size:34, shadow:false });
-$("#st-2").innerHTML = avatarSVG({ name:"Call QA", size:34, shadow:false });
-$("#st-3").innerHTML = avatarSVG({ name:"Pipeline Watch", size:34, shadow:false });
-$("#st-3").classList.add("still");
 
 /* ---- inspector ---- */
 function currentSVG(extra){
@@ -536,7 +541,7 @@ function render(){
     + '<span class="cell-spec">depth ' + st.value.toFixed(2) + '</span></div>').join("");
   $("#matrix").classList.toggle("still", !state.motion);
 
-  renderRoster();
+  renderInSitu();
 
   document.querySelectorAll(".tile").forEach(t =>
     t.setAttribute("aria-pressed", String(t.dataset.shape === state.shape)));
