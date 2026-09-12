@@ -335,8 +335,8 @@ footer{
           <p class="note">Overlapped at 44&nbsp;px the silhouettes stay separable without a ring or a border — that's what the different shapes buy you. A page of same-shaped circles needs colour alone to carry the difference.</p>
         </div>
         <div class="app">
-          <div class="app-bar"><span class="t">Status</span><span class="c"><a href="status.html">tune it →</a></span></div>
-          <div data-av-halos="all">
+          <div class="app-bar"><span class="t">Status</span><span class="c"><span id="motion-sum"></span> · <a href="status.html">tune&nbsp;→</a></span></div>
+          <div>
           <div class="row"><div data-status="working" id="st-1"></div><div class="row-mid"><div class="row-name">Working</div><div class="row-last">Dashed ring (opt-in), saccades, body follows</div></div></div>
           <div class="row"><div data-status="needs" id="st-2"></div><div class="row-mid"><div class="row-name">Needs you</div><div class="row-last">Solid ring that pings, hops, then rests</div></div></div>
           <div class="row"><div data-status="idle" id="st-3"></div><div class="row-mid"><div class="row-name">Idle</div><div class="row-last">Dimmed and perfectly still</div></div></div>
@@ -406,6 +406,7 @@ avatarSVG({ name: "Inbox Triage", eyes: false })</pre>
 
 <script type="module">
 import { SHAPES, PALETTE, avatarSVG, buildPath, toHex, DEPTH_STOPS } from "../src/index.js";
+import { applyMotion, onMotionChange, summarise } from "./motion-settings.js";
 
 /* ==================== page ==================== */
 const $ = s => document.querySelector(s);
@@ -454,14 +455,14 @@ $("#swatches").innerHTML = PALETTE.map((p, i) =>
 
 /* ---- roster ---- */
 const ROSTER = [
-  { name:"Call QA",          last:"flagged 3 calls where the caller had to repeat the PIN", time:"11:04", status:"need" },
-  { name:"Simulation Runner",last:"40 sims on the new squad — 2 regressions in handoff",     time:"10:22", status:"work" },
-  { name:"Knowledge Sync",   last:"re-crawled the help centre, 12 articles changed",         time:"9:47",  status:"work" },
+  { name:"Call QA",          last:"flagged 3 calls where the caller had to repeat the PIN", time:"11:04", status:"needs" },
+  { name:"Simulation Runner",last:"40 sims on the new squad — 2 regressions in handoff",     time:"10:22", status:"working" },
+  { name:"Knowledge Sync",   last:"re-crawled the help centre, 12 articles changed",         time:"9:47",  status:"working" },
   { name:"Inbox Triage",     last:"inbox at zero, 5 drafts parked for tomorrow",             time:"9:30",  status:"idle" },
-  { name:"Release Notes",    last:"draft is ready for your read, held for approval",         time:"8:15",  status:"need" },
+  { name:"Release Notes",    last:"draft is ready for your read, held for approval",         time:"8:15",  status:"needs" },
   { name:"Pipeline Watch",   last:"nightly run green, nothing outstanding",                  time:"6:02",  status:"idle" }
 ];
-const SAYS = { work:"working", need:"needs you", idle:"idle" };
+const SAYS = { working:"working", needs:"needs you", idle:"idle" };
 /** Everything that shows the avatars in a UI, so all of it follows the slider. */
 function renderInSitu(){
   const depth = state.depth;
@@ -583,6 +584,14 @@ function fallback(text, done){
 $("#copy-svg").addEventListener("click", () => copy(currentSVG({ size:96 }), "SVG copied"));
 $("#copy-path").addEventListener("click", () =>
   copy(buildPath(SHAPES.find(s => s.id === state.shape)), "Path copied"));
+
+/* Whatever was tuned on the status page applies here too. It sits on the root
+   so the roster and the face pile follow it as well, not just the panel. */
+function syncMotion(state){
+  $("#motion-sum").textContent = summarise(applyMotion(document.documentElement, state));
+}
+syncMotion();
+onMotionChange(syncMotion);
 
 render();
 </script>

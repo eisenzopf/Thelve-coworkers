@@ -197,7 +197,7 @@ footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   </section>
 
   <footer>
-    <span>Status is CSS — no avatar is rebuilt when one changes</span>
+    <span>Kept for next time, and picked up by the <a href="./">gallery</a></span>
     <span><a href="https://github.com/eisenzopf/Thelve-coworkers">github.com/eisenzopf/Thelve-coworkers</a></span>
   </footer>
 </div>
@@ -205,11 +205,13 @@ footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 
 <script type="module">
 import { avatarSVG, phaseFor } from "../src/index.js";
+import { DEFAULTS, JUMP_SECONDS, readMotion, writeMotion, applyMotion } from "./motion-settings.js";
 
 const $ = (s) => document.querySelector(s);
 const root = document.documentElement;
-const state = { halos: "none", eye: 1, jump: "normal" };
-const JUMP_LABEL = { often: "6 s", normal: "12 s", rare: "24 s", never: "never" };
+// Pick up whatever was tuned last, here or on the gallery page.
+const state = readMotion();
+const JUMP_LABEL = JUMP_SECONDS;
 
 const STATUSES = [
   { id:"working", name:"Working", who:"Simulation Runner",
@@ -286,12 +288,8 @@ $("#gaze").addEventListener("click", e => {
 const word = (v) => v === 0 ? "off" : v < .7 ? "calm" : v > 1.4 ? "busy" : "default";
 
 function apply(){
-  root.dataset.avHalos = state.halos;
-  root.dataset.avJump = state.jump;
-  root.style.setProperty("--av-eye-rate", state.eye || 1);
-  // Rate 0 is an off switch, not a division by zero — and switching it off
-  // returns the eyes to their gaze rest position instead of freezing mid-jump.
-  if (state.eye === 0) root.dataset.avOff = "eyes"; else delete root.dataset.avOff;
+  applyMotion(root, state);
+  writeMotion(state);
 
   $("#halo-val").textContent = state.halos;
   $("#eye-val").textContent = `${state.eye.toFixed(1)}× · ${word(state.eye)}`;
@@ -322,9 +320,7 @@ for (const [id, key] of [["#halos", "halos"], ["#jump", "jump"]]) {
   });
 }
 $("#eye").addEventListener("input", e => { state.eye = +e.target.value; apply(); });
-$("#reset").addEventListener("click", () => {
-  state.halos = "none"; state.eye = 1; state.jump = "normal"; apply();
-});
+$("#reset").addEventListener("click", () => { Object.assign(state, DEFAULTS); apply(); });
 
 let t;
 $("#copy").addEventListener("click", async () => {

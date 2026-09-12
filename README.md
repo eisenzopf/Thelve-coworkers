@@ -223,6 +223,7 @@ src/
   react.js       optional React binding, no JSX
 demo/index.html  gallery, inspector, roster
 demo/status.html status motion, with the three knobs
+demo/motion-settings.js  the tuning, shared between the two pages
 ```
 
 ## Licence
