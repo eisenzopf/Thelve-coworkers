@@ -143,8 +143,6 @@ h2{font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;
 .cell svg{width:96px;height:96px;margin-bottom:10px}
 .cell-name{font-family:var(--display);font-weight:700;font-size:15px}
 .cell-spec{font-family:var(--mono);font-size:10.5px;color:var(--ink-3)}
-.axis-ramp{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-top:22px;padding:18px 20px;background:var(--panel);border:1px solid var(--rule-soft);border-radius:16px}
-.axis-ramp .ramp-item span:first-child{display:block;width:58px;height:58px}
 input[type=range]{flex:1;accent-color:var(--sel);height:20px}
 .hue-val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
 
@@ -308,19 +306,6 @@ footer{
       </div>
 
       <div class="field">
-        <span class="lab">Border</span>
-        <div class="axis-row">
-          <input type="range" id="border" min="0" max="4" step=".05" value="0" aria-label="Border width">
-          <span class="axis-val" id="border-val">None</span>
-        </div>
-        <div class="stops" id="border-stops"></div>
-        <div class="toggles" id="border-color" style="margin-top:12px">
-          <button class="tg" data-bc="contour" aria-pressed="true">Contour</button>
-          <button class="tg" data-bc="ink" aria-pressed="false">Ink</button>
-        </div>
-      </div>
-
-      <div class="field">
         <span class="lab">Options</span>
         <div class="toggles">
           <button class="tg" id="tg-eyes" aria-pressed="true">Eyes</button>
@@ -369,11 +354,10 @@ footer{
 
   <section class="insitu">
     <div class="sec-head">
-      <h2>Two axes</h2>
-      <p class="sec-note">Depth and border move independently — every corner is somewhere worth landing</p>
+      <h2>Depth</h2>
+      <p class="sec-note">Flat is a destination, not a degraded render — every stop is somewhere worth landing</p>
     </div>
     <div class="matrix" id="matrix"></div>
-    <div class="axis-ramp" id="depth-ramp"></div>
   </section>
 
   <section class="handoff">
@@ -427,13 +411,13 @@ avatarSVG({ name: "Inbox Triage", eyes: false })</pre>
 <div class="toast" id="toast">Copied</div>
 
 <script type="module">
-import { SHAPES, PALETTE, avatarSVG, buildPath, toHex, DEPTH_STOPS, BORDER_STOPS } from "../src/index.js";
+import { SHAPES, PALETTE, avatarSVG, buildPath, toHex, DEPTH_STOPS } from "../src/index.js";
 
 /* ==================== page ==================== */
 const $ = s => document.querySelector(s);
 const state = {
   shape:"pebble", color:PALETTE[0], hue:PALETTE[0].h,
-  depth:1, border:0, borderColor:"contour",
+  depth:1,
   eyes:true, shadow:true, motion:true,
 };
 
@@ -468,7 +452,6 @@ const renderStops = (el, stops, key) => {
   });
 };
 renderStops($("#depth-stops"), DEPTH_STOPS, "depth");
-renderStops($("#border-stops"), BORDER_STOPS, "border");
 
 /* ---- swatches ---- */
 $("#swatches").innerHTML = PALETTE.map((p, i) =>
@@ -488,7 +471,7 @@ const CHIP = { work:'<span class="chip work">working</span>', need:'<span class=
 function renderRoster(){
   $("#roster").innerHTML = ROSTER.map(r =>
     '<div class="row' + (r.status === "idle" ? " still" : "") + '"' + (r.status === "idle" ? ' style="opacity:.62"' : "") + '>'
-    + avatarSVG({ name:r.name, depth:state.depth, border:state.border, borderColor:state.borderColor })
+    + avatarSVG({ name:r.name, depth:state.depth })
     + '<div class="row-mid"><div class="row-name">' + r.name + CHIP[r.status] + '</div>'
     + '<div class="row-last">' + r.last + '</div></div>'
     + '<div class="row-time">' + r.time + '</div></div>').join("");
@@ -506,7 +489,7 @@ $("#st-3").classList.add("still");
 function currentSVG(extra){
   return avatarSVG(Object.assign({
     shape: state.shape, hue: state.hue, sat: state.color.s, lum: state.color.l,
-    depth: state.depth, border: state.border, borderColor: state.borderColor,
+    depth: state.depth,
     eyes: state.eyes, shadow: state.shadow
   }, extra || {}));
 }
@@ -530,37 +513,18 @@ function render(){
   $("#ramp").classList.toggle("still", !state.motion);
 
   const dStop = nearest(DEPTH_STOPS, state.depth);
-  const bStop = nearest(BORDER_STOPS, state.border);
   $("#depth").value = state.depth;
-  $("#border").value = state.border;
   $("#depth-val").textContent = dStop.name + " · " + state.depth.toFixed(2);
-  $("#border-val").textContent = bStop.name + " · " + state.border.toFixed(2);
   document.querySelectorAll("#depth-stops .stop").forEach((el, i) =>
     el.setAttribute("aria-pressed", String(DEPTH_STOPS[i].value === state.depth)));
-  document.querySelectorAll("#border-stops .stop").forEach((el, i) =>
-    el.setAttribute("aria-pressed", String(BORDER_STOPS[i].value === state.border)));
-  document.querySelectorAll("#border-color .tg").forEach(el =>
-    el.setAttribute("aria-pressed", String(el.dataset.bc === state.borderColor)));
 
-  // The 2x2: the four corners of the two axes, so the combination space is
-  // visible without touching a slider.
-  const CORNERS = [
-    { name:"Silhouette",      depth:0, border:0,   note:"flat · no line" },
-    { name:"Sticker",         depth:0, border:2.5, note:"flat · medium" },
-    { name:"Rendered",        depth:1, border:0,   note:"full · no line" },
-    { name:"Rendered + line", depth:1, border:1.5, note:"full · light" },
-  ];
-  $("#matrix").innerHTML = CORNERS.map(o =>
-    '<div class="cell">' + currentSVG({ depth:o.depth, border:o.border })
-    + '<span class="cell-name">' + o.name + '</span>'
-    + '<span class="cell-spec">' + o.note + '</span></div>').join("");
+  // The named stops side by side, so the whole axis is visible without
+  // touching the slider.
+  $("#matrix").innerHTML = DEPTH_STOPS.map(st =>
+    '<div class="cell">' + currentSVG({ depth:st.value })
+    + '<span class="cell-name">' + st.name + '</span>'
+    + '<span class="cell-spec">depth ' + st.value.toFixed(2) + '</span></div>').join("");
   $("#matrix").classList.toggle("still", !state.motion);
-
-  $("#depth-ramp").innerHTML = [0, 0.25, 0.5, 0.75, 1].map(d =>
-    '<div class="ramp-item"><span>' + currentSVG({ depth:d }) + '</span>'
-    + '<span class="px">' + d.toFixed(2) + '</span></div>').join("");
-  $("#depth-ramp").querySelectorAll("svg").forEach(el => { el.style.width = "100%"; el.style.height = "100%"; });
-  $("#depth-ramp").classList.toggle("still", !state.motion);
 
   renderRoster();
 
@@ -587,11 +551,6 @@ $("#swatches").addEventListener("click", e => {
 });
 $("#hue").addEventListener("input", e => { state.hue = +e.target.value; render(); });
 $("#depth").addEventListener("input", e => { state.depth = +e.target.value; render(); });
-$("#border").addEventListener("input", e => { state.border = +e.target.value; render(); });
-$("#border-color").addEventListener("click", e => {
-  const b = e.target.closest("[data-bc]"); if (!b) return;
-  state.borderColor = b.dataset.bc; render();
-});
 
 function toggle(id, key){
   $(id).addEventListener("click", () => {

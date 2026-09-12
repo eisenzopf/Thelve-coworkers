@@ -46,49 +46,37 @@ avatarSVG({ name: "Inbox Triage", eyes: false, shadow: false })
 avatarSVG({ name: "Release Notes", hue: 300 })   // same coworker, different colour
 ```
 
-## Two axes: `depth` and `border`
+## `depth`
 
 How rendered the avatars look is a dial, not a fixed style.
 
 ```js
-avatarSVG({ name: "Call QA", depth: 0 })                    // flat silhouette
-avatarSVG({ name: "Call QA", depth: 0, border: 2.5 })       // sticker
-avatarSVG({ name: "Call QA" })                              // rendered (default)
-avatarSVG({ name: "Call QA", border: 1.5 })                 // rendered, with a contour
+avatarSVG({ name: "Call QA", depth: 0 })     // flat silhouette
+avatarSVG({ name: "Call QA", depth: 0.3 })   // soft
+avatarSVG({ name: "Call QA", depth: 0.6 })   // satin
+avatarSVG({ name: "Call QA" })               // rendered (default)
 ```
 
-**`depth`** `0 … 1`, default `1`. Drives all six shading layers at once, each on
-its own curve. Flat is not "3D turned down" — at `0` the form gradient collapses
-to a solid fill and every other layer is dropped entirely, giving you a clean
-designed mark (and a 2 KB SVG instead of 8 KB). Two rules shape the middle: the
-specular fades out first, because it is the strongest "this is rendered" cue and
-carrying it through the middle just makes mud; and gloss is highlight
-*tightness*, not opacity, so the highlight shrinks and brightens as depth rises
-rather than merely getting more opaque. Named stops are in `DEPTH_STOPS` —
-Flat · Soft · Satin · Rendered.
+`0 … 1`, default `1`. It drives all six shading layers at once, each on its own
+curve. Flat is not "3D turned down" — at `0` the form gradient collapses onto a
+single colour and every other layer is dropped entirely, giving you a clean
+designed mark (and a 2 KB SVG instead of 8 KB).
 
-**`border`** `0 … ~4`, default `0`, in viewBox units, so it scales with the
-avatar. Stroked at twice the width and clipped to the silhouette, which makes it
-an *inside* stroke: the outer edge never moves at any weight, so a bordered
-avatar is exactly the same size as an unbordered one beside it in a list. Named
-stops are in `BORDER_STOPS` — None · Hairline · Light · Medium · Heavy.
+Two rules shape the middle. The **specular fades out first**, because it is the
+strongest "this is rendered" cue and carrying it through the middle just makes
+mud. And **gloss is highlight tightness, not opacity** — the highlight shrinks
+and brightens as depth rises rather than merely getting more opaque, which is
+the difference between a rubbery finish and a vinyl one.
 
-**`borderColor`** is `"contour"` by default, an ink line derived from the body
-colour — self-contained and good on any ground. `"ink"` emits `currentColor`
-instead, for the true cartoon outline; that is the one setting that makes an
-avatar depend on its page, so set `color` on an ancestor and it follows the
-theme. Any other value is used as a CSS colour verbatim.
+`rim`, `cast` and `eye` keep their colour at every depth and lose opacity
+instead, which is what a light actually does when it dims; only `light` and
+`shade` travel back onto `core`.
 
-The two axes are independent, and all four corners are places worth landing:
+Named stops are in `DEPTH_STOPS` — Flat · Soft · Satin · Rendered.
 
-|  | `border: 0` | `border: 2.5` |
-|---|---|---|
-| **`depth: 0`** | flat silhouette mark | sticker / cartoon |
-| **`depth: 1`** | the default render | render with a contour — useful on busy or photographic backgrounds |
-
-Below about 20 px a hairline border is a fraction of a device pixel and will
-shimmer or vanish, and high depth muddies a small silhouette. Both are worth a
-size check rather than magic auto-behaviour.
+High depth muddies a very small silhouette, so it is worth a size check rather
+than magic auto-behaviour: dropping to `0.3` below about 20 px reads better than
+the full render does.
 
 The returned SVG carries no width or height unless you pass `size` — size the
 `.av` element in CSS and it scales cleanly from 16 px to whatever you need.
@@ -102,13 +90,13 @@ The returned SVG carries no width or height unless you pass `size` — size the
 | `SHAPES` | The fourteen shape definitions. |
 | `PALETTE` | The fourteen hues, with names. |
 | `buildPath(shape)` | Path data for one silhouette, normalised into a 100 × 100 box. Cached. |
-| `palette(h, s, l, depth?)` | The seven colours one avatar is lit with. |
-| `DEPTH_STOPS` / `BORDER_STOPS` | Named stops for building pickers. |
+| `palette(h, s, l, depth?)` | The six colours one avatar is lit with. |
+| `DEPTH_STOPS` | Named stops, for building a picker. |
 | `toHex(h, s, l)` | For showing a swatch value in a UI. |
 | `shapeById(id)` | Lookup, falling back to Pebble on an unknown id. |
 
-**`AvatarOptions`** — `name`, `shape`, `hue`, `sat`, `lum`, `depth`, `border`,
-`borderColor`, `size`, `eyes`, `shadow`, `title`. Types ship in `index.d.ts`.
+**`AvatarOptions`** — `name`, `shape`, `hue`, `sat`, `lum`, `depth`, `size`,
+`eyes`, `shadow`, `title`. Types ship in `index.d.ts`.
 
 ## The cast
 

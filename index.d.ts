@@ -41,7 +41,6 @@ export interface AvatarPalette {
   readonly rim: string;
   readonly eye: string;
   readonly cast: string;
-  readonly contour: string;
 }
 
 export interface AvatarOptions {
@@ -55,15 +54,6 @@ export interface AvatarOptions {
   lum?: number | undefined;
   /** 0 flat … 1 fully rendered. Default 1. */
   depth?: number | undefined;
-  /** Outline width in viewBox units — roughly 0–4. Drawn inward, so the silhouette never grows. Default 0. */
-  border?: number | undefined;
-  /**
-   * `"contour"` (default) derives an ink line from the body colour and stays
-   * self-contained. `"ink"` emits `currentColor`, so the outline follows the
-   * page theme — the one setting that makes an avatar depend on its host.
-   * Any other value is used as a CSS colour verbatim.
-   */
-  borderColor?: "contour" | "ink" | (string & {}) | undefined;
   /** Sets width/height attributes. Omit and size the `.av` element in CSS. */
   size?: number | undefined;
   /** Default true. */
@@ -93,6 +83,3 @@ export declare function avatarSVG(options?: AvatarOptions): string;
 
 /** Named stops along the depth axis: Flat, Soft, Satin, Rendered. */
 export declare const DEPTH_STOPS: readonly NamedStop[];
-
-/** Named stops along the border axis, in viewBox units: None … Heavy. */
-export declare const BORDER_STOPS: readonly NamedStop[];

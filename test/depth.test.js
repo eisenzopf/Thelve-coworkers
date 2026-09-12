@@ -1,15 +1,22 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { avatarSVG, palette, DEPTH_STOPS, BORDER_STOPS } from "../src/index.js";
+import { avatarSVG, palette, DEPTH_STOPS } from "../src/index.js";
 
 const formStops = (svg) => [...svg.matchAll(/<stop offset="[^"]*" stop-color="(hsl\([^)]*\))"\/>/g)].map((m) => m[1]);
-const fillPath = (svg) => /<path d="([^"]+)" fill="url\(#f/.exec(svg)?.[1];
 const attr = (svg, re) => re.exec(svg)?.[1];
 
 test("depth 0 collapses the form gradient onto a single colour", () => {
   const stops = formStops(avatarSVG({ shape: "orb", hue: 208, depth: 0 }));
   assert.equal(stops.length, 3);
   assert.equal(new Set(stops).size, 1, "light, core and shade are the same colour");
+});
+
+test("the palette dims without shifting hue", () => {
+  // Only light and shade collapse onto core; rim, cast and eye keep their
+  // colour and lose opacity instead, which is what a dimming light does.
+  for (const role of ["rim", "cast", "eye"]) {
+    assert.equal(palette(208, 82, 56, 0)[role], palette(208, 82, 56, 1)[role], role);
+  }
 });
 
 test("depth 0 emits nothing but the fill and the eyes", () => {
@@ -50,49 +57,9 @@ test("gloss is highlight tightness, not opacity", () => {
   assert.ok(scale(1) < scale(0.6), "the highlight tightens as depth rises");
 });
 
-test("the border never moves the silhouette", () => {
-  const base = fillPath(avatarSVG({ shape: "spark" }));
-  for (const { value } of BORDER_STOPS) {
-    assert.equal(fillPath(avatarSVG({ shape: "spark", border: value })), base, `border ${value}`);
-  }
-});
-
-test("the border is stroked at twice its width and clipped inward", () => {
-  const svg = avatarSVG({ shape: "orb", hue: 208, border: 2.5 });
-  const contour = /<path d="[^"]+" fill="none" stroke="(hsl\([^)]*\))" stroke-width="([\d.]+)"\/><\/g>/.exec(svg);
-  assert.ok(contour, "the contour is the last layer inside the clip group");
-  assert.equal(contour[2], "5", "2.5 units of visible line needs a 5-unit centred stroke");
-});
-
-test("border 0 draws no contour", () => {
-  assert.ok(!/stroke="hsl[^"]*" stroke-width/.test(avatarSVG({ shape: "orb", border: 0 })));
-});
-
-test("borderColor picks between self-contained and theme-following", () => {
-  assert.ok(avatarSVG({ shape: "orb", border: 2 }).includes('stroke="hsl('), "contour is self-contained");
-  assert.ok(avatarSVG({ shape: "orb", border: 2, borderColor: "ink" }).includes('stroke="currentColor"'));
-  assert.ok(avatarSVG({ shape: "orb", border: 2, borderColor: "#ff0066" }).includes('stroke="#ff0066"'));
-});
-
-test("depth and border are independent axes", () => {
-  // All four corners of the 2×2 render, and none of them collide.
-  const corners = [
-    { depth: 0, border: 0 },
-    { depth: 0, border: 2.5 },
-    { depth: 1, border: 0 },
-    { depth: 1, border: 2.5 },
-  ].map((o) => avatarSVG({ shape: "pebble", hue: 208, ...o }));
-  assert.equal(new Set(corners).size, 4, "each corner is a distinct render");
-});
-
-test("both axes are part of the id key, so nothing cross-paints", () => {
+test("depth is part of the id key, so nothing cross-paints", () => {
   const id = (svg) => /id="f([a-z0-9]+)"/.exec(svg)[1];
-  const ids = [
-    avatarSVG({ shape: "orb", hue: 208 }),
-    avatarSVG({ shape: "orb", hue: 208, depth: 0.5 }),
-    avatarSVG({ shape: "orb", hue: 208, border: 2 }),
-    avatarSVG({ shape: "orb", hue: 208, border: 2, borderColor: "ink" }),
-  ].map(id);
+  const ids = [0, 0.3, 0.6, 1].map((d) => id(avatarSVG({ shape: "orb", hue: 208, depth: d })));
   assert.equal(new Set(ids).size, 4);
 });
 
@@ -101,7 +68,7 @@ test("depth reaches the stylesheet for the specular drift", () => {
 });
 
 test("the default render is unchanged", () => {
-  // Depth 1 with no border must still be exactly the look the kit shipped with.
+  // Depth 1 must still be exactly the look the kit shipped with.
   const svg = avatarSVG({ shape: "orb", hue: 208 });
   assert.equal(attr(svg, /stroke="url\(#b[a-z0-9]+\)" stroke-width="([\d.]+)"/), "16");
   assert.equal(attr(svg, /stroke="url\(#k[a-z0-9]+\)" stroke-width="([\d.]+)"/), "8");
@@ -112,23 +79,10 @@ test("the default render is unchanged", () => {
   assert.match(svg, /scale\(1\)/);
 });
 
-test("the named stops span each axis end to end", () => {
+test("the named stops span the axis end to end", () => {
   assert.equal(DEPTH_STOPS[0].value, 0);
   assert.equal(DEPTH_STOPS.at(-1).value, 1);
-  assert.equal(BORDER_STOPS[0].value, 0);
-  for (const stops of [DEPTH_STOPS, BORDER_STOPS]) {
-    const values = stops.map((s) => s.value);
-    assert.deepEqual(values, [...values].sort((a, b) => a - b), "stops are ordered");
-  }
+  const values = DEPTH_STOPS.map((d) => d.value);
+  assert.deepEqual(values, [...values].sort((a, b) => a - b), "stops are ordered");
 });
 
-test("contour is independent of depth", () => {
-  const contour = (d) => /stroke="(hsl\([^)]*\))" stroke-width="4"/.exec(avatarSVG({ shape: "orb", hue: 208, depth: d, border: 2 }))[1];
-  assert.equal(contour(0), contour(1), "the outline does not fade with the shading");
-});
-
-test("palette exposes a contour role at every depth", () => {
-  for (const d of [0, 0.5, 1]) {
-    assert.match(palette(208, 82, 56, d).contour, /^hsl\(\d+, [\d.]+%, [\d.]+%\)$/);
-  }
-});

@@ -8,7 +8,6 @@
  *
  * `rim`, `eye` and `cast` keep their colour at every depth; it is their opacity
  * that the renderer scales, which is what a light actually does when it dims.
- * `contour` is independent of depth altogether — the outline is its own axis.
  */
 
 /** @param {number} v */
@@ -34,7 +33,6 @@ const hsl = (h, s, l) =>
  * @property {string} rim     bounce light along the lower-right edge
  * @property {string} eye
  * @property {string} cast    cast shadow, tinted rather than grey
- * @property {string} contour outline; darker than shade and independent of depth
  */
 
 /**
@@ -55,7 +53,6 @@ export function palette(h, s, l, depth = 1) {
     rim: hsl(h + 15, s * 1.06, Math.min(l + 22, 86)),
     eye: hsl(h + 4, s * 0.5, Math.max(l - 43, 11)),
     cast: hsl(h - 4, s * 0.7, Math.max(l - 34, 14)),
-    contour: hsl(h - 8, s * 0.9, Math.max(l - 38, 10)),
   };
 }
 

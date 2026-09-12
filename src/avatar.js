@@ -5,21 +5,13 @@
  * needs — gradients, clip path, drop shadow — lives inside that one element, so
  * a page can hold any number of them with nothing shared and nothing to set up.
  *
- * Two independent axes control the look:
- *
- *   `depth`  0 → 1   how much the form is modelled. Four layers make a flat
- *                    silhouette read as a solid: a radial form gradient lit from
- *                    the upper left; a bounce rim stroked along the path and
- *                    clipped to it, so only the inner half shows; a thin key rim
- *                    on the top edge; and a specular that lags the body as it
- *                    floats. Each fades on its own curve — the specular goes
- *                    first, because it is the strongest "this is rendered" cue
- *                    and keeping it through the middle just makes mud.
- *
- *   `border` 0 → ~4  an outline, in viewBox units. Stroked at twice the width
- *                    and clipped to the silhouette, so it grows inward only and
- *                    the outer edge never moves at any weight — which is what
- *                    keeps the constant-area normalisation honest.
+ * `depth` (0 → 1) controls how much the form is modelled. Four layers make a
+ * flat silhouette read as a solid: a radial form gradient lit from the upper
+ * left; a bounce rim stroked along the path and clipped to it, so only the inner
+ * half shows; a thin key rim on the top edge; and a specular that lags the body
+ * as it floats. Each fades on its own curve — the specular goes first, because
+ * it is the strongest "this is rendered" cue and keeping it through the middle
+ * just makes mud.
  */
 
 import { SHAPES, PALETTE, shapeById } from "./shapes.js";
@@ -67,21 +59,12 @@ export function avatarFor(name) {
   };
 }
 
-/** Named stops for the depth axis, for pickers and docs. */
+/** Named stops along the depth axis, for pickers and docs. */
 export const DEPTH_STOPS = Object.freeze([
   { name: "Flat", value: 0 },
   { name: "Soft", value: 0.3 },
   { name: "Satin", value: 0.6 },
   { name: "Rendered", value: 1 },
-]);
-
-/** Named stops for the border axis, in viewBox units. */
-export const BORDER_STOPS = Object.freeze([
-  { name: "None", value: 0 },
-  { name: "Hairline", value: 0.75 },
-  { name: "Light", value: 1.5 },
-  { name: "Medium", value: 2.5 },
-  { name: "Heavy", value: 4 },
 ]);
 
 /**
@@ -92,12 +75,6 @@ export const BORDER_STOPS = Object.freeze([
  * @property {number} [sat]     0–100
  * @property {number} [lum]     0–100
  * @property {number} [depth]   0 flat … 1 fully rendered. Default 1.
- * @property {number} [border]  outline width in viewBox units. Default 0.
- * @property {"contour"|"ink"|string} [borderColor]
- *   `"contour"` (default) derives an ink line from the body colour and stays
- *   self-contained. `"ink"` emits `currentColor`, which is the one setting that
- *   makes an avatar depend on the page — set `color` on an ancestor and it will
- *   follow the theme. Any other value is used as a CSS colour verbatim.
  * @property {number} [size]    sets width/height attributes; omit and size in CSS
  * @property {boolean} [eyes]   default true
  * @property {boolean} [shadow] default true
@@ -117,8 +94,6 @@ export function avatarSVG(options = {}) {
   const l = options.lum ?? (options.hue === undefined ? pick?.color.l : undefined) ?? 56;
 
   const depth = clamp01(options.depth ?? 1);
-  const border = Math.max(0, options.border ?? 0);
-  const borderColor = options.borderColor ?? "contour";
   const eyes = options.eyes !== false;
   const shadow = options.shadow !== false && depth > 0;
 
@@ -127,8 +102,8 @@ export function avatarSVG(options = {}) {
 
   // Ids are derived from the appearance, not a counter: two identical avatars
   // may share a gradient, and server and client always agree — a counter would
-  // break hydration.
-  const key = `${sp.id}|${h}|${s}|${l}|${depth}|${border}|${borderColor}|${eyes ? 1 : 0}|${shadow ? 1 : 0}`;
+  // break hydration. Anything that changes the look belongs in this key.
+  const key = `${sp.id}|${h}|${s}|${l}|${depth}|${eyes ? 1 : 0}|${shadow ? 1 : 0}`;
   const u = fnv1a(key).toString(36);
 
   // Seeded off the name so a roster blinks and drifts out of sync.
@@ -151,9 +126,6 @@ export function avatarSVG(options = {}) {
   const ey = sp.ey;
   const cx = 50 + (sp.exOff ?? 0);
 
-  const paint =
-    borderColor === "contour" ? c.contour : borderColor === "ink" ? "currentColor" : borderColor;
-
   /** Layers that live inside the silhouette clip, in paint order. */
   const clipped = [];
   if (bounceA > 0) clipped.push(`<path d="${d}" fill="none" stroke="url(#b${u})" stroke-width="${bounceW}"/>`);
@@ -169,14 +141,11 @@ export function avatarSVG(options = {}) {
         `</g>`,
     );
   }
-  // The contour sits above the shading and below the eyes. Twice the width,
-  // clipped: the outer half is discarded so the silhouette never grows.
-  if (border > 0) {
-    clipped.push(`<path d="${d}" fill="none" stroke="${paint}" stroke-width="${r2(border * 2)}"/>`);
-  }
 
   /** @type {string[]} */
   const defs = [];
+  // At depth 0 nothing is clipped, and the clip path is a second copy of the
+  // path data — worth skipping rather than shipping dead weight.
   if (clipped.length > 0) defs.push(`<clipPath id="c${u}"><path d="${d}"/></clipPath>`);
   defs.push(
     `<radialGradient id="f${u}" cx="34%" cy="25%" r="${gradR}%">` +

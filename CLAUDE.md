@@ -28,13 +28,11 @@ npm run contact-sheet   # regenerate docs/cast.svg after changing shapes or hues
   HTML by consumers, so anything interpolated into the SVG needs `esc()`.
 - **`depth` scales opacity, not colour, for `rim`/`cast`/`eye`** — a dimming
   light does not change hue. Only `light` and `shade` collapse onto `core`.
-  `contour` is deliberately outside the depth axis; the outline is its own.
-- **The border must stay an inside stroke** (drawn at `border * 2`, clipped). A
-  centred stroke would grow the silhouette and break the constant-area
-  normalisation that keeps shapes the same size next to each other.
-- **Anything that changes the look must join the id key** in `avatarSVG` —
-  `depth`, `border` and `borderColor` all do. Miss one and two avatars share a
-  gradient they shouldn't.
+- **Each depth layer has its own curve** (`ramp()` in `avatar.js`), not one
+  shared multiplier. The specular starting at 0.25 and the crisp dot at 0.55 are
+  what keep the mid-range looking matte rather than like a faded render.
+- **Anything that changes the look must join the id key** in `avatarSVG`. Miss
+  one and two avatars that should differ will share a gradient.
 - **`buildPath` is cached per shape id.** Shape definitions are effectively
   immutable at runtime; mutating one after first render will not take effect.
 
