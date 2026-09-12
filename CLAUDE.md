@@ -33,6 +33,19 @@ npm run contact-sheet   # regenerate docs/cast.svg after changing shapes or hues
   what keep the mid-range looking matte rather than like a faded render.
 - **Anything that changes the look must join the id key** in `avatarSVG`. Miss
   one and two avatars that should differ will share a gradient.
+- **Phase is a fraction of a cycle, never a number of seconds.** Every animated
+  rule in `avatar.css` offsets by `calc(var(--av-phase) * var(--av-cycle) * -1)`.
+  A fixed delay would stop spreading a roster the moment a rate changed. Adding
+  an animated rule without that delay puts every coworker on it in lockstep —
+  `test/motion.test.js` fails the build if you forget.
+- **`--av-cycle` is declared on the element that uses it**, not at `:root`. A
+  custom property that references `var(--av-eye-rate)` bakes in the rate where
+  it is *declared*, so hoisting it would make ancestor overrides silently dead.
+- **Status is CSS and must stay that way.** `data-status` on the avatar or any
+  ancestor. Moving it into `avatarSVG` would mean rebuilding markup every time a
+  coworker changes state.
+- **The rings must survive `prefers-reduced-motion`.** They differ in form —
+  dashed, solid, absent — precisely so status does not depend on movement.
 - **`buildPath` is cached per shape id.** Shape definitions are effectively
   immutable at runtime; mutating one after first render will not take effect.
 

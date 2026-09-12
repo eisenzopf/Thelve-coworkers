@@ -64,7 +64,7 @@ test("depth is part of the id key, so nothing cross-paints", () => {
 });
 
 test("depth reaches the stylesheet for the specular drift", () => {
-  assert.match(avatarSVG({ shape: "orb", depth: 0.6 }), /style="--av-depth:0\.6"/);
+  assert.match(avatarSVG({ shape: "orb", depth: 0.6 }), /--av-depth:0\.6/);
 });
 
 test("the default render is unchanged", () => {

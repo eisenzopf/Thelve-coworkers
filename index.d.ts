@@ -54,6 +54,12 @@ export interface AvatarOptions {
   lum?: number | undefined;
   /** 0 flat … 1 fully rendered. Default 1. */
   depth?: number | undefined;
+  /**
+   * 0–1 slot in every animation cycle, emitted as `--av-phase`. Defaults to a
+   * hash of `name`. Set it explicitly — `i / roster.length` — when you know the
+   * whole roster and want guaranteed spacing rather than stable-per-name.
+   */
+  phase?: number | undefined;
   /** Sets width/height attributes. Omit and size the `.av` element in CSS. */
   size?: number | undefined;
   /** Default true. */
@@ -77,6 +83,34 @@ export declare function toHex(h: number, s: number, l: number): string;
 
 /** The stable shape and hue a given name maps to. */
 export declare function avatarFor(name: string): { shape: ShapeDef; color: Hue };
+
+/**
+ * The 0–1 slot a name occupies in every animation cycle, emitted on the SVG as
+ * `--av-phase` so a roster never moves in unison. A fraction rather than a
+ * number of seconds, so the spread rescales when the motion rate changes.
+ */
+export declare function phaseFor(name: string): number;
+
+/**
+ * Status and motion, for reference. None of these are arguments to `avatarSVG` —
+ * they are CSS, read by `avatar.css` from the avatar or any ancestor, so status
+ * can change without an avatar being rebuilt.
+ *
+ * ```html
+ * <div data-status="working" style="--av-eye-rate: 1.4; --av-body-rate: .7">
+ * ```
+ *
+ * | | |
+ * |---|---|
+ * | `data-status` | `"working" \| "needs" \| "idle"` |
+ * | `data-av-halos` | `"all"` (default) `\| "needs" \| "none"` |
+ * | `data-av-off` | space-separated: `eyes`, `body`, `halo` |
+ * | `--av-eye-rate` | tempo multiplier, 1 = default, 2 = twice as often |
+ * | `--av-body-rate` | as above, for float, lean and hop |
+ * | `--av-gaze-x` / `--av-gaze-y` | resting eye direction, −1 … 1 |
+ * | `--av-working` / `--av-needs` | ring colours |
+ */
+export type AvatarStatus = "working" | "needs" | "idle";
 
 /** A complete, self-contained SVG element as a string. */
 export declare function avatarSVG(options?: AvatarOptions): string;

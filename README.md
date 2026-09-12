@@ -7,8 +7,9 @@ SVG each — no dependencies, no build step, no image assets.
   <img src="docs/cast.svg" alt="The fourteen shapes: Pebble, Orb, Capsule, Squircle, Dome, Bean, Egg, Wedge, Gem, Barrel, Puff, Clover, Bumper, Spark" width="100%">
 </a>
 
-**[Open the live gallery →](https://eisenzopf.github.io/Thelve-coworkers/demo/)** — every shape and hue, a depth slider from flat
-to fully rendered, and a mock roster to see them at real UI sizes.
+**[Open the live gallery →](https://eisenzopf.github.io/Thelve-coworkers/demo/)** — every shape and hue, a depth slider from
+flat to fully rendered, and a mock roster to see them at real UI sizes.
+**[Status motion →](https://eisenzopf.github.io/Thelve-coworkers/demo/status.html)** — tune how they move and copy the setting.
 
 A roster of AI agents needs faces that are told apart at a glance. Colour alone
 stops working the moment two of them sit next to each other in a 32 px list, or
@@ -86,12 +87,65 @@ the full render does.
 The returned SVG carries no width or height unless you pass `size` — size the
 `.av` element in CSS and it scales cleanly from 16 px to whatever you need.
 
+## Status &amp; motion
+
+Three statuses, told apart by how they move rather than by a word beside them:
+**working** scans and turns, **needs-you** hops and looks straight at you,
+**idle** holds still. Import the stylesheet and set one attribute:
+
+```html
+<link rel="stylesheet" href="@thelve/coworkers/avatar.css">
+
+<div data-status="working">…avatar…</div>
+```
+
+Status never touches the SVG. It flips constantly in a live app, and
+regenerating markup on every change would throw away memoisation for nothing —
+so it is CSS, read from the avatar or any ancestor. A whole roster changes with
+one attribute, and nothing is rebuilt.
+
+| Hook | |
+|---|---|
+| `data-status` | `working` · `needs` · `idle` |
+| `data-av-halos` | `all` (default) · `needs` · `none` |
+| `data-av-off` | space-separated: `eyes`, `body`, `halo` |
+| `--av-eye-rate` | tempo multiplier — `1` default, `2` twice as often, `0` off |
+| `--av-body-rate` | as above, for float, lean and hop |
+| `--av-gaze-x` / `--av-gaze-y` | resting eye direction, −1 … 1 |
+| `--av-working` / `--av-needs` | ring colours |
+
+**The rings are the primary channel, not the motion.** Motion is invisible
+under `prefers-reduced-motion`, in screenshots, in print, and before animations
+start — so the three rings differ in *form*, dashed against solid against
+absent, and stay drawn when everything stops. Motion is the second channel that
+makes status pre-attentive. Rows should still carry a hidden label for screen
+readers; they get no channel at all otherwise.
+
+### Nothing moves in unison
+
+Every avatar carries `--av-phase`, the slot it occupies in each cycle, hashed
+from its name. Each animated rule offsets itself by that fraction.
+
+A *fraction*, not a number of seconds — that is the part that matters. An
+absolute delay stops spreading anything the moment a duration changes, so
+turning `--av-body-rate` up would slide a roster back into step. A fraction
+rescales with whatever duration it lands on, and the spread holds at any tempo.
+
+Hashing is stable as a roster changes but stateless, so it cannot guarantee
+*spacing*: among a dozen names the closest pair lands about 1/n² apart, near
+enough to look synchronised. When you know the whole roster, space it yourself:
+
+```js
+avatarSVG({ name, phase: i / roster.length })
+```
+
 ## API
 
 | Export | |
 |---|---|
 | `avatarSVG(options?)` | A complete, self-contained SVG element as a string. |
 | `avatarFor(name)` | The `{ shape, color }` a name maps to, without rendering. |
+| `phaseFor(name)` | The 0–1 animation slot a name maps to. |
 | `SHAPES` | The fourteen shape definitions. |
 | `PALETTE` | The fourteen hues, with names. |
 | `buildPath(shape)` | Path data for one silhouette, normalised into a 100 × 100 box. Cached. |
@@ -100,8 +154,8 @@ The returned SVG carries no width or height unless you pass `size` — size the
 | `toHex(h, s, l)` | For showing a swatch value in a UI. |
 | `shapeById(id)` | Lookup, falling back to Pebble on an unknown id. |
 
-**`AvatarOptions`** — `name`, `shape`, `hue`, `sat`, `lum`, `depth`, `size`,
-`eyes`, `shadow`, `title`. Types ship in `index.d.ts`.
+**`AvatarOptions`** — `name`, `shape`, `hue`, `sat`, `lum`, `depth`, `phase`,
+`size`, `eyes`, `shadow`, `title`. Types ship in `index.d.ts`.
 
 ## The cast
 
@@ -163,6 +217,7 @@ src/
   avatar.css     idle float, specular drift, blink (optional)
   react.js       optional React binding, no JSX
 demo/index.html  gallery, inspector, roster
+demo/status.html status motion, with the three knobs
 ```
 
 ## Licence

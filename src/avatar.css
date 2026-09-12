@@ -1,44 +1,237 @@
-/* Idle motion for @thelve/coworkers.
-   Optional — the avatars are complete without it. Add `still` to any ancestor
-   to freeze a subtree (an offline coworker, a print stylesheet, a screenshot). */
+/* Motion and status for @thelve/coworkers.
+   Optional — the avatars are complete without it.
+
+   Everything here is driven from outside the SVG:
+
+     data-status="working|needs|idle"   on the avatar or any ancestor
+     --av-eye-rate   / --av-body-rate   tempo multipliers, 1 = default, 2 = twice as often
+     --av-gaze-x     / --av-gaze-y      resting eye direction, -1 … 1
+     data-av-halos="all|needs|none"     which statuses show a ring
+     data-av-off="eyes body halo"       hard off switches
+
+   Status never touches the SVG, so a roster can change state without any avatar
+   being rebuilt, and transitions stay in the compositor. */
+
+/* ---------- the rig ---------- */
 
 .av {
   display: block;
-  /* The float and the cast shadow both reach outside the viewBox. */
+  /* The float, the ring and the cast shadow all reach outside the viewBox. */
   overflow: visible;
 }
 
-.av-body { animation: av-float 5.4s ease-in-out infinite; transform-origin: 50px 52px; }
-.av-spec { animation: av-spec  5.4s ease-in-out infinite; }
-.av-eyes { animation: av-blink 7.1s infinite; }
+.av-halo {
+  display: none;
+  transform-box: view-box;
+  transform-origin: 50px 52px;
+}
+
+/* Gaze rides on `translate` while the status animations drive `transform`.
+   Separate properties, so they compose without a second group. */
+.av-look {
+  translate: calc(var(--av-gaze-x, 0) * 2.6px) calc(var(--av-gaze-y, 0) * 1.8px);
+}
+
+/* ---------- tempo ----------
+   Each rule declares --av-cycle on the element that uses it, so the rate is read
+   where it lands rather than baked in at :root, and an override on any ancestor
+   works. The delay is a fraction of that same cycle: change the rate and the
+   spread across a roster rescales with it instead of collapsing. */
+
+.av-body {
+  transform-origin: 50px 52px;
+  --av-cycle: calc(5.4s / var(--av-body-rate, 1));
+  animation: av-float var(--av-cycle) ease-in-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+.av-spec {
+  --av-cycle: calc(5.4s / var(--av-body-rate, 1));
+  animation: av-spec var(--av-cycle) ease-in-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+.av-eyes {
+  --av-cycle: 7.1s;
+  animation: av-blink var(--av-cycle) infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+/* ---------- working ----------
+   Scanning something. The eyes lead, the body follows. */
+
+[data-status="working"] .av-body {
+  --av-cycle: calc(5.4s / var(--av-body-rate, 1));
+  --av-cycle-lean: calc(5.2s / var(--av-body-rate, 1));
+  animation: av-float var(--av-cycle) ease-in-out infinite,
+             av-lean var(--av-cycle-lean) ease-in-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
+                   calc(var(--av-phase, 0) * var(--av-cycle-lean) * -1);
+}
+
+[data-status="working"] .av-look {
+  --av-cycle: calc(5.2s / var(--av-eye-rate, 1));
+  animation: av-scan var(--av-cycle) linear infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+/* Concentration suppresses blinking. */
+[data-status="working"] .av-eyes {
+  --av-cycle: 10.5s;
+  animation: av-blink var(--av-cycle) infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+[data-status="working"] .av-halo {
+  display: block;
+  color: var(--av-working, #2E7D6B);
+  stroke-dasharray: 5 7;
+  opacity: .75;
+  --av-cycle: 7s;
+  animation: av-halo-spin var(--av-cycle) linear infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+/* ---------- needs you ----------
+   Asks for attention, then stops asking. */
+
+[data-status="needs"] .av-body {
+  /* A hop pivots on the ground, not on the middle of the body. */
+  transform-origin: 50px 86px;
+  --av-cycle: calc(5.5s / var(--av-body-rate, 1));
+  animation: av-hop var(--av-cycle) cubic-bezier(.3, 0, .35, 1) infinite,
+             av-squash var(--av-cycle) ease-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
+                   calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+[data-status="needs"] .av-look {
+  --av-cycle: calc(5.5s / var(--av-eye-rate, 1));
+  animation: av-glance var(--av-cycle) linear infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+[data-status="needs"] .av-eyes {
+  --av-cycle: 4.6s;
+  animation: av-blink var(--av-cycle) infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+[data-status="needs"] .av-halo {
+  display: block;
+  color: var(--av-needs, #C05621);
+  --av-cycle: 2.6s;
+  animation: av-halo-ping var(--av-cycle) ease-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+/* ---------- idle ---------- */
+
+[data-status="idle"] { opacity: .55; }
+[data-status="idle"] .av-body,
+[data-status="idle"] .av-look,
+[data-status="idle"] .av-spec,
+[data-status="idle"] .av-eyes { animation: none; }
+[data-status="idle"] .av-halo { display: none; }
+
+/* ---------- switches ---------- */
+
+[data-av-halos="none"] .av-halo,
+[data-av-halos="needs"] [data-status="working"] .av-halo { display: none; }
+
+[data-av-off~="eyes"] .av-look,
+[data-av-off~="body"] .av-body,
+[data-av-off~="body"] .av-spec { animation: none; }
+[data-av-off~="halo"] .av-halo { display: none; }
+
+/* `still` on any ancestor freezes a subtree — an offline coworker, a print
+   stylesheet, a screenshot. The rings stay drawn; only the motion stops. */
+.still .av-body,
+.still .av-spec,
+.still .av-eyes,
+.still .av-look,
+.still .av-halo { animation: none; }
+
+/* Motion is never the only status channel. Under reduced motion the rings are
+   still there and still differ in form — dashed, solid, absent — so status
+   survives with no movement at all. */
+@media (prefers-reduced-motion: reduce) {
+  .av-body, .av-spec, .av-eyes, .av-look, .av-halo { animation: none !important; }
+  [data-status="needs"] .av-halo { opacity: .9; }
+}
+
+/* ---------- keyframes ---------- */
 
 @keyframes av-float {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50%      { transform: translateY(-1.7px) rotate(-1.2deg); }
+  0%, 100% { translate: 0 0; }
+  50%      { translate: 0 -1.7px; }
 }
 
 /* The highlight lags the body by a hair, which is what reads as a curved surface
    turning under a fixed light rather than a sticker sliding around. Its throw
-   follows `--av-depth` (set on each avatar) so a faint highlight on a flatter
-   avatar doesn't swing as far as a bright one. The float itself is deliberately
-   NOT scaled — motion is not a form cue, and a flat mark may still be alive. */
+   follows --av-depth so a faint highlight doesn't swing as far as a bright one. */
 @keyframes av-spec {
   0%, 100% { transform: translate(0, 0); }
-  50%      { transform: translate(calc(1.7px * var(--av-depth, 1)), calc(-0.9px * var(--av-depth, 1))); }
+  50%      { transform: translate(calc(1.7px * var(--av-depth, 1)), calc(-.9px * var(--av-depth, 1))); }
 }
 
 @keyframes av-blink {
   0%, 93.5%, 100% { transform: scaleY(1); }
-  95.5%           { transform: scaleY(0.06); }
+  95.5%           { transform: scaleY(.06); }
   97%             { transform: scaleY(1); }
 }
 
-.still .av-body,
-.still .av-spec,
-.still .av-eyes { animation: none; }
+/* Saccades, not pans. Eyes reading a screen hold for most of a second and then
+   jump in about 50 ms; easing that into a smooth sweep reads dreamy, not busy.
+   Each step holds, then crosses in 1% of the cycle. */
+@keyframes av-scan {
+  0%,  20%  { transform: translate(-2px, .9px); }
+  21%, 42%  { transform: translate(2.2px, .7px); }
+  43%, 55%  { transform: translate(-1.6px, 1.5px); }
+  56%, 78%  { transform: translate(1.9px, 1.1px); }
+  79%, 100% { transform: translate(-.5px, -.9px); }
+}
 
-@media (prefers-reduced-motion: reduce) {
-  .av-body,
-  .av-spec,
-  .av-eyes { animation: none !important; }
+/* The body follows the eyes ~120 ms late and at a fifth of the throw. */
+@keyframes av-lean {
+  0%,    22.3% { rotate: -1.4deg; }
+  23.3%, 44.3% { rotate: 1.5deg; }
+  45.3%, 57.3% { rotate: -1deg; }
+  58.3%, 80.3% { rotate: 1.2deg; }
+  81.3%, 100%  { rotate: -.4deg; }
+}
+
+/* 660 ms of hop inside a 5.5 s cycle: attention-seeking has to decay, or a list
+   of six becomes unusable. */
+@keyframes av-hop {
+  0%, 12%, 100% { translate: 0 0; }
+  2.5%          { translate: 0 -6px; }
+  5.5%          { translate: 0 0; }
+  8%            { translate: 0 -3.2px; }
+  10.5%         { translate: 0 0; }
+}
+
+@keyframes av-squash {
+  0%, 12%, 100% { scale: 1 1; }
+  1.2%          { scale: 1.07 .93; }
+  2.5%          { scale: .95 1.06; }
+  5.5%          { scale: 1.08 .92; }
+  6.8%          { scale: 1 1; }
+  8%            { scale: .97 1.04; }
+  10.5%         { scale: 1.04 .96; }
+  11.6%         { scale: 1 1; }
+}
+
+@keyframes av-glance {
+  0%,  10%  { transform: translate(0, -.4px); }
+  13%, 22%  { transform: translate(-2.4px, -.6px); }
+  23%, 32%  { transform: translate(2.4px, -.6px); }
+  33%, 100% { transform: translate(0, -.5px); }
+}
+
+@keyframes av-halo-spin { to { rotate: 360deg; } }
+
+@keyframes av-halo-ping {
+  0%        { scale: .93; opacity: .8; }
+  70%, 100% { scale: 1.16; opacity: 0; }
 }

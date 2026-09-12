@@ -198,18 +198,6 @@ input[type=range]{flex:1;accent-color:var(--sel);height:20px}
 .row-name{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
 .row-last{font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row-time{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none;font-variant-numeric:tabular-nums}
-.chip{
-  font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
-  padding:2px 7px;border-radius:5px;border:1px solid var(--rule);color:var(--ink-3);
-}
-.chip.work{border-color:#2E7D6B;color:#2E7D6B;background:rgba(46,125,107,.09)}
-.chip.need{border-color:#C05621;color:#C05621;background:rgba(192,86,33,.1)}
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]) .chip.work{border-color:#5FBFA6;color:#5FBFA6;background:rgba(95,191,166,.12)}
-  :root:not([data-theme="light"]) .chip.need{border-color:#E58A4E;color:#E58A4E;background:rgba(229,138,78,.13)}
-}
-:root[data-theme="dark"] .chip.work{border-color:#5FBFA6;color:#5FBFA6;background:rgba(95,191,166,.12)}
-:root[data-theme="dark"] .chip.need{border-color:#E58A4E;color:#E58A4E;background:rgba(229,138,78,.13)}
 
 .side{display:flex;flex-direction:column;gap:22px}
 .pile{display:flex;padding:18px}
@@ -221,6 +209,7 @@ input[type=range]{flex:1;accent-color:var(--sel);height:20px}
   font-family:var(--mono);font-size:12px;color:var(--ink-2);
 }
 .note{font-size:13px;color:var(--ink-2);padding:0 18px 18px;line-height:1.5}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
 .note code{font-family:var(--mono);font-size:12px;background:var(--panel-2);padding:1.5px 5px;border-radius:4px}
 
 /* ---------- handoff ---------- */
@@ -245,13 +234,6 @@ footer{
   display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 }
 
-.halo{position:relative;display:grid;place-items:center}
-.halo::after{
-  content:"";position:absolute;inset:-4px;border-radius:999px;
-  border:1.5px dashed currentColor;opacity:.55;animation:spin 7s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.halo::after{animation:none}}
 .toast{
   position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
   background:var(--ink);color:var(--paper);padding:9px 18px;border-radius:999px;
@@ -353,10 +335,10 @@ footer{
           <p class="note">Overlapped at 44&nbsp;px the silhouettes stay separable without a ring or a border — that's what the different shapes buy you. A page of same-shaped circles needs colour alone to carry the difference.</p>
         </div>
         <div class="app">
-          <div class="app-bar"><span class="t">Status</span><span class="c">form, not just colour</span></div>
-          <div class="row"><div class="halo" style="color:#2E7D6B" id="st-1"></div><div class="row-mid"><div class="row-name">Working</div><div class="row-last">Dashed ring, slow rotation</div></div></div>
-          <div class="row"><div id="st-2"></div><div class="row-mid"><div class="row-name">Needs you</div><div class="row-last">Amber chip on the row</div></div></div>
-          <div class="row"><div id="st-3" style="opacity:.45"></div><div class="row-mid"><div class="row-name">Idle</div><div class="row-last">Dimmed, motion paused</div></div></div>
+          <div class="app-bar"><span class="t">Status</span><span class="c"><a href="status.html">tune it →</a></span></div>
+          <div class="row"><div data-status="working" id="st-1"></div><div class="row-mid"><div class="row-name">Working</div><div class="row-last">Dashed ring, saccades, body follows the eyes</div></div></div>
+          <div class="row"><div data-status="needs" id="st-2"></div><div class="row-mid"><div class="row-name">Needs you</div><div class="row-last">Solid ring that pings, hops, then rests</div></div></div>
+          <div class="row"><div data-status="idle" id="st-3"></div><div class="row-mid"><div class="row-name">Idle</div><div class="row-last">Dimmed and perfectly still</div></div></div>
         </div>
       </div>
     </div>
@@ -477,15 +459,16 @@ const ROSTER = [
   { name:"Release Notes",    last:"draft is ready for your read, held for approval",         time:"8:15",  status:"need" },
   { name:"Pipeline Watch",   last:"nightly run green, nothing outstanding",                  time:"6:02",  status:"idle" }
 ];
-const CHIP = { work:'<span class="chip work">working</span>', need:'<span class="chip need">needs you</span>', idle:"" };
+const SAYS = { work:"working", need:"needs you", idle:"idle" };
 /** Everything that shows the avatars in a UI, so all of it follows the slider. */
 function renderInSitu(){
   const depth = state.depth;
 
   $("#roster").innerHTML = ROSTER.map(r =>
-    '<div class="row' + (r.status === "idle" ? " still" : "") + '"' + (r.status === "idle" ? ' style="opacity:.62"' : "") + '>'
-    + avatarSVG({ name:r.name, depth })
-    + '<div class="row-mid"><div class="row-name">' + r.name + CHIP[r.status] + '</div>'
+    '<div class="row">'
+    + '<div data-status="' + r.status + '">' + avatarSVG({ name:r.name, depth }) + '</div>'
+    + '<div class="row-mid"><div class="row-name">' + r.name
+    + '<span class="sr"> — ' + SAYS[r.status] + '</span></div>'
     + '<div class="row-last">' + r.last + '</div></div>'
     + '<div class="row-time">' + r.time + '</div></div>').join("");
 
@@ -497,7 +480,6 @@ function renderInSitu(){
   $("#st-1").innerHTML = avatarSVG({ name:"Simulation Runner", depth, size:34, shadow:false });
   $("#st-2").innerHTML = avatarSVG({ name:"Call QA", depth, size:34, shadow:false });
   $("#st-3").innerHTML = avatarSVG({ name:"Pipeline Watch", depth, size:34, shadow:false });
-  $("#st-3").classList.add("still");
 }
 
 /* ---- inspector ---- */

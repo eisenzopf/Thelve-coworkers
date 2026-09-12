@@ -5,6 +5,12 @@
  * needs — gradients, clip path, drop shadow — lives inside that one element, so
  * a page can hold any number of them with nothing shared and nothing to set up.
  *
+ * Motion lives in CSS, not here. This emits two hooks and stops: `--av-phase`,
+ * the 0–1 slot this avatar occupies in every animation cycle, and the group
+ * structure the stylesheet animates (`.av-body`, `.av-look`, `.av-eyes`,
+ * `.av-spec`). Status flips constantly in a live app; regenerating an SVG
+ * string on every change would throw away memoisation for nothing.
+ *
  * `depth` (0 → 1) controls how much the form is modelled. Four layers make a
  * flat silhouette read as a solid: a radial form gradient lit from the upper
  * left; a bounce rim stroked along the path and clipped to it, so only the inner
@@ -59,6 +65,28 @@ export function avatarFor(name) {
   };
 }
 
+/**
+ * The 0–1 slot a name occupies in every animation cycle, so a roster of
+ * coworkers never moves in unison. Stable per name, like the shape and hue.
+ *
+ * It is a *fraction*, not a number of seconds, and that matters: an absolute
+ * delay stops spreading anything the moment a duration changes, so turning the
+ * motion rate up would slide avatars back into step with each other. A fraction
+ * rescales with whatever duration it is applied to.
+ *
+ * Assignment is stateless, so it stays stable as a roster changes — but that
+ * also means it cannot guarantee spacing. Among a dozen names the closest pair
+ * lands about 1/n² apart, close enough to look synchronised. Pass an explicit
+ * `phase` to `avatarSVG` when you know the whole roster and want to spread it
+ * by index instead.
+ *
+ * @param {string} name
+ * @returns {number} 0 … 0.999
+ */
+export function phaseFor(name) {
+  return Math.round((fnv1a(String(name)) / 4294967296) * 1000) / 1000;
+}
+
 /** Named stops along the depth axis, for pickers and docs. */
 export const DEPTH_STOPS = Object.freeze([
   { name: "Flat", value: 0 },
@@ -75,6 +103,8 @@ export const DEPTH_STOPS = Object.freeze([
  * @property {number} [sat]     0–100
  * @property {number} [lum]     0–100
  * @property {number} [depth]   0 flat … 1 fully rendered. Default 1.
+ * @property {number} [phase]   0–1 slot in the animation cycle. Defaults to a
+ *   hash of `name`; set it explicitly to spread a known roster by index.
  * @property {number} [size]    sets width/height attributes; omit and size in CSS
  * @property {boolean} [eyes]   default true
  * @property {boolean} [shadow] default true
@@ -106,8 +136,8 @@ export function avatarSVG(options = {}) {
   const key = `${sp.id}|${h}|${s}|${l}|${depth}|${eyes ? 1 : 0}|${shadow ? 1 : 0}`;
   const u = fnv1a(key).toString(36);
 
-  // Seeded off the name so a roster blinks and drifts out of sync.
-  const delay = ((fnv1a(options.name ?? key) % 400) / 100).toFixed(2);
+  // Seeded off the name so a roster never moves in unison.
+  const phase = options.phase ?? phaseFor(options.name ?? key);
 
   // --- depth: each layer on its own curve ---
   const bounceA = depth;
@@ -132,8 +162,7 @@ export function avatarSVG(options = {}) {
   if (keyA > 0) clipped.push(`<path d="${d}" fill="none" stroke="url(#k${u})" stroke-width="8"/>`);
   if (specA > 0) {
     clipped.push(
-      `<g class="av-spec" style="animation-delay:-${delay}s"` +
-        ` transform="translate(50 52) scale(${specScale}) translate(-50 -52)">` +
+      `<g class="av-spec" transform="translate(50 52) scale(${specScale}) translate(-50 -52)">` +
         `<ellipse cx="34" cy="28" rx="14" ry="9.6" transform="rotate(-28 34 28)" fill="url(#s${u})"/>` +
         (dotA > 0
           ? `<ellipse cx="29.6" cy="22.4" rx="3.5" ry="2.6" transform="rotate(-28 29.6 22.4)" fill="#fff" opacity="${dotA}"/>`
@@ -183,25 +212,30 @@ export function avatarSVG(options = {}) {
     );
   }
 
+  // Hidden unless a [data-status] rule in avatar.css turns it on. currentColor
+  // so the ring takes its hue from the page rather than hard-coding a theme.
+  const halo =
+    `<circle class="av-halo" cx="50" cy="52" r="51" fill="none" stroke="currentColor" stroke-width="1.7"/>`;
+
   const label = esc(options.title ?? options.name ?? `${sp.name} avatar`);
   const dims = options.size !== undefined ? ` width="${options.size}" height="${options.size}"` : "";
 
   return (
     `<svg class="av" viewBox="0 0 100 100"${dims} xmlns="http://www.w3.org/2000/svg"` +
-    ` role="img" aria-label="${label}" style="--av-depth:${r2(depth)}">` +
-    `<defs>${defs.join("")}</defs>` +
-    `<g class="av-body" style="animation-delay:-${delay}s"${shadow ? ` filter="url(#d${u})"` : ""}>` +
+    ` role="img" aria-label="${label}" style="--av-depth:${r2(depth)};--av-phase:${phase}">` +
+    `<defs>${defs.join("")}</defs>` + halo +
+    `<g class="av-body"${shadow ? ` filter="url(#d${u})"` : ""}>` +
     `<path d="${d}" fill="url(#f${u})"/>` +
     (clipped.length > 0 ? `<g clip-path="url(#c${u})">${clipped.join("")}</g>` : "") +
     (eyes
-      ? `<g class="av-eyes" style="transform-origin:${cx}px ${ey}px;animation-delay:-${delay}s">` +
+      ? `<g class="av-look"><g class="av-eyes" style="transform-origin:${cx}px ${ey}px">` +
         `<ellipse cx="${cx - ex}" cy="${ey}" rx="4.3" ry="5.4" fill="${c.eye}"/>` +
         `<ellipse cx="${cx + ex}" cy="${ey}" rx="4.3" ry="5.4" fill="${c.eye}"/>` +
         (catchA > 0
-          ? `<ellipse cx="${cx - ex - 1.2}" cy="${ey - 2.1}" rx="1.25" ry="1.5" fill="#fff" opacity="${catchA}"/>` +
-            `<ellipse cx="${cx + ex - 1.2}" cy="${ey - 2.1}" rx="1.25" ry="1.5" fill="#fff" opacity="${catchA}"/>`
+          ? `<ellipse cx="${r2(cx - ex - 1.2)}" cy="${r2(ey - 2.1)}" rx="1.25" ry="1.5" fill="#fff" opacity="${catchA}"/>` +
+            `<ellipse cx="${r2(cx + ex - 1.2)}" cy="${r2(ey - 2.1)}" rx="1.25" ry="1.5" fill="#fff" opacity="${catchA}"/>`
           : "") +
-        `</g>`
+        `</g></g>`
       : "") +
     `</g></svg>`
   );
