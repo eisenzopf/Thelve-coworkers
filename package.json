@@ -1,0 +1,50 @@
+{
+  "name": "@thelve/coworkers",
+  "version": "0.1.0",
+  "description": "Soft-body avatars for AI coworkers. Fourteen shapes, fourteen hues, one inline SVG each \u2014 no dependencies, no build step, no image assets.",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./react": {
+      "types": "./react.d.ts",
+      "default": "./src/react.js"
+    },
+    "./avatar.css": "./src/avatar.css"
+  },
+  "files": [
+    "src",
+    "index.d.ts",
+    "react.d.ts",
+    "README.md"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo": "node scripts/serve.mjs",
+    "contact-sheet": "node scripts/contact-sheet.mjs"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  },
+  "keywords": [
+    "avatar",
+    "svg",
+    "agents",
+    "identicon",
+    "ui"
+  ],
+  "private": true
+}

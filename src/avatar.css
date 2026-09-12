@@ -1,0 +1,41 @@
+/* Idle motion for @thelve/coworkers.
+   Optional — the avatars are complete without it. Add `still` to any ancestor
+   to freeze a subtree (an offline coworker, a print stylesheet, a screenshot). */
+
+.av {
+  display: block;
+  /* The float and the cast shadow both reach outside the viewBox. */
+  overflow: visible;
+}
+
+.av-body { animation: av-float 5.4s ease-in-out infinite; transform-origin: 50px 52px; }
+.av-spec { animation: av-spec  5.4s ease-in-out infinite; }
+.av-eyes { animation: av-blink 7.1s infinite; }
+
+@keyframes av-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50%      { transform: translateY(-1.7px) rotate(-1.2deg); }
+}
+
+/* The highlight lags the body by a hair, which is what reads as a curved surface
+   turning under a fixed light rather than a sticker sliding around. */
+@keyframes av-spec {
+  0%, 100% { transform: translate(0, 0); }
+  50%      { transform: translate(1.7px, -0.9px); }
+}
+
+@keyframes av-blink {
+  0%, 93.5%, 100% { transform: scaleY(1); }
+  95.5%           { transform: scaleY(0.06); }
+  97%             { transform: scaleY(1); }
+}
+
+.still .av-body,
+.still .av-spec,
+.still .av-eyes { animation: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .av-body,
+  .av-spec,
+  .av-eyes { animation: none !important; }
+}

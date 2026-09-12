@@ -1,0 +1,518 @@
+<title>Coworker Cast</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700;800&family=DM+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="../src/avatar.css">
+<style>
+:root{
+  --paper:#E7EAF0;
+  --panel:#FBFCFD;
+  --panel-2:#F1F4F9;
+  --ink:#151A22;
+  --ink-2:#4C5665;
+  --ink-3:#818C9D;
+  --rule:#C9D1DE;
+  --rule-soft:#DCE2EC;
+  --lift:0 1px 1px rgba(19,27,44,.05), 0 10px 26px -16px rgba(19,27,44,.30);
+  --sel:#151A22;
+  --sel-wash:rgba(21,26,34,.05);
+  --display:"Bricolage Grotesque","Trebuchet MS",system-ui,sans-serif;
+  --body:"Schibsted Grotesk",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"DM Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1218;
+    --panel:#171B23;
+    --panel-2:#1D222B;
+    --ink:#E9ECF2;
+    --ink-2:#A3ADBC;
+    --ink-3:#6E7987;
+    --rule:#2B323D;
+    --rule-soft:#232933;
+    --lift:0 1px 1px rgba(0,0,0,.4), 0 14px 30px -18px rgba(0,0,0,.8);
+    --sel:#E9ECF2;
+    --sel-wash:rgba(233,236,242,.06);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1218;
+  --panel:#171B23;
+  --panel-2:#1D222B;
+  --ink:#E9ECF2;
+  --ink-2:#A3ADBC;
+  --ink-3:#6E7987;
+  --rule:#2B323D;
+  --rule-soft:#232933;
+  --lift:0 1px 1px rgba(0,0,0,.4), 0 14px 30px -18px rgba(0,0,0,.8);
+  --sel:#E9ECF2;
+  --sel-wash:rgba(233,236,242,.06);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:var(--body);
+  font-size:15px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1260px;margin:0 auto;padding:34px 28px 80px}
+h1,h2,h3{margin:0;font-family:var(--display);text-wrap:balance}
+p{margin:0}
+button{font:inherit;color:inherit}
+
+/* ---------- masthead ---------- */
+.mast{display:flex;flex-wrap:wrap;gap:28px 48px;align-items:flex-end;justify-content:space-between}
+.eyebrow{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);
+}
+h1{font-size:clamp(38px,5.4vw,62px);font-weight:800;letter-spacing:-.028em;line-height:.98;margin:10px 0 12px}
+.lede{max-width:48ch;color:var(--ink-2);font-size:16.5px}
+.mast-meta{
+  font-family:var(--mono);font-size:11.5px;color:var(--ink-3);
+  display:flex;gap:18px;flex-wrap:wrap;padding-bottom:6px;
+}
+.mast-meta b{color:var(--ink-2);font-weight:500}
+
+.strip{
+  margin:34px 0 0;padding:22px 4px 24px;
+  border-top:1px solid var(--rule);border-bottom:1px solid var(--rule);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(52px,1fr));gap:16px 4px;place-items:center;
+}
+.strip .av{width:52px;height:52px}
+
+/* ---------- main columns ---------- */
+.sheet{display:grid;grid-template-columns:minmax(0,1fr) 366px;gap:40px;margin-top:38px;align-items:start}
+@media (max-width:980px){.sheet{grid-template-columns:minmax(0,1fr)}}
+
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:16px}
+h2{font-size:13px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;font-family:var(--mono)}
+.sec-note{font-size:13px;color:var(--ink-3)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(136px,1fr));gap:10px}
+.tile{
+  background:var(--panel);border:1px solid var(--rule-soft);border-radius:16px;
+  padding:16px 10px 12px;cursor:pointer;text-align:center;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  transition:border-color .16s, background .16s, transform .16s;
+}
+.tile:hover{border-color:var(--rule);transform:translateY(-2px)}
+.tile[aria-pressed="true"]{border-color:var(--sel);background:var(--sel-wash)}
+.tile .av{width:76px;height:76px;margin-bottom:8px}
+.tile-name{font-family:var(--display);font-weight:700;font-size:15.5px;letter-spacing:-.01em}
+.tile-blurb{font-size:11.5px;color:var(--ink-3);line-height:1.35}
+.tile:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--sel);outline-offset:2px}
+
+/* ---------- inspector ---------- */
+.inspector{position:sticky;top:24px;display:flex;flex-direction:column;gap:0}
+.insp-stage{
+  display:flex;align-items:center;gap:20px;
+  padding:22px 0 20px;border-bottom:1px solid var(--rule);
+}
+.insp-stage .av{width:132px;height:132px;flex:none}
+.insp-id h3{font-family:var(--display);font-size:30px;font-weight:800;letter-spacing:-.02em;line-height:1}
+.insp-id .sub{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:7px}
+.insp-id .swatch-name{color:var(--ink-2)}
+
+.field{padding:16px 0;border-bottom:1px solid var(--rule-soft)}
+.field > .lab{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:11px;
+}
+.swatches{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}
+.sw{
+  aspect-ratio:1;border-radius:999px;border:2px solid transparent;cursor:pointer;padding:0;
+  box-shadow:inset 0 -4px 7px -3px rgba(0,0,0,.45), inset 0 4px 6px -3px rgba(255,255,255,.8);
+}
+.sw[aria-pressed="true"]{border-color:var(--ink);transform:scale(1.06)}
+.hue-row{display:flex;align-items:center;gap:12px;margin-top:13px}
+input[type=range]{flex:1;accent-color:var(--sel);height:20px}
+.hue-val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+
+.toggles{display:flex;gap:7px;flex-wrap:wrap}
+.tg{
+  border:1px solid var(--rule);background:transparent;border-radius:999px;
+  padding:5px 13px;font-size:12.5px;cursor:pointer;color:var(--ink-2);
+  transition:background .15s,color .15s,border-color .15s;
+}
+.tg[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+.ramp{display:flex;align-items:flex-end;gap:18px;flex-wrap:wrap}
+.ramp-item{display:flex;flex-direction:column;align-items:center;gap:7px}
+.ramp-item .px{font-family:var(--mono);font-size:10px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+
+.actions{display:flex;gap:8px;padding-top:16px;flex-wrap:wrap}
+.btn{
+  border:1px solid var(--ink);background:var(--ink);color:var(--paper);
+  border-radius:9px;padding:8px 15px;font-size:13px;font-weight:600;cursor:pointer;
+  transition:opacity .15s;
+}
+.btn:hover{opacity:.85}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--rule)}
+.btn.ghost:hover{border-color:var(--ink);opacity:1}
+
+/* ---------- in situ ---------- */
+.insitu{margin-top:56px}
+.insitu-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(0,1fr);gap:22px;align-items:start}
+@media (max-width:860px){.insitu-grid{grid-template-columns:minmax(0,1fr)}}
+.app{
+  background:var(--panel);border:1px solid var(--rule-soft);border-radius:18px;
+  box-shadow:var(--lift);overflow:hidden;
+}
+.app-bar{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:13px 18px;border-bottom:1px solid var(--rule-soft);background:var(--panel-2);
+}
+.app-bar .t{font-weight:700;font-size:13.5px;letter-spacing:-.005em}
+.app-bar .c{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+.row{display:flex;gap:13px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--rule-soft)}
+.row:last-child{border-bottom:0}
+.row .av{width:36px;height:36px;flex:none}
+.row-mid{min-width:0;flex:1}
+.row-name{font-weight:600;font-size:13.5px;display:flex;align-items:center;gap:8px}
+.row-last{font-size:12.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row-time{font-family:var(--mono);font-size:11px;color:var(--ink-3);flex:none;font-variant-numeric:tabular-nums}
+.chip{
+  font-family:var(--mono);font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;border:1px solid var(--rule);color:var(--ink-3);
+}
+.chip.work{border-color:#2E7D6B;color:#2E7D6B;background:rgba(46,125,107,.09)}
+.chip.need{border-color:#C05621;color:#C05621;background:rgba(192,86,33,.1)}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .chip.work{border-color:#5FBFA6;color:#5FBFA6;background:rgba(95,191,166,.12)}
+  :root:not([data-theme="light"]) .chip.need{border-color:#E58A4E;color:#E58A4E;background:rgba(229,138,78,.13)}
+}
+:root[data-theme="dark"] .chip.work{border-color:#5FBFA6;color:#5FBFA6;background:rgba(95,191,166,.12)}
+:root[data-theme="dark"] .chip.need{border-color:#E58A4E;color:#E58A4E;background:rgba(229,138,78,.13)}
+
+.side{display:flex;flex-direction:column;gap:22px}
+.pile{display:flex;padding:18px}
+.pile .av{width:44px;height:44px;margin-left:-13px}
+.pile .av:first-child{margin-left:0}
+.pile .pile-more{
+  width:44px;height:44px;margin-left:-13px;border-radius:999px;background:var(--panel-2);
+  border:1.5px solid var(--panel);display:grid;place-items:center;
+  font-family:var(--mono);font-size:12px;color:var(--ink-2);
+}
+.note{font-size:13px;color:var(--ink-2);padding:0 18px 18px;line-height:1.5}
+.note code{font-family:var(--mono);font-size:12px;background:var(--panel-2);padding:1.5px 5px;border-radius:4px}
+
+/* ---------- handoff ---------- */
+.handoff{margin-top:56px}
+.code-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.code-head .t{font-family:var(--display);font-weight:700;font-size:17px}
+pre{
+  margin:0;background:var(--panel);border:1px solid var(--rule-soft);border-radius:14px;
+  padding:16px 18px;overflow:auto;max-height:300px;
+  font-family:var(--mono);font-size:11.5px;line-height:1.65;color:var(--ink-2);
+}
+.code-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:22px}
+.code-lab{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);margin:0 0 8px}
+.code-grid pre{margin-bottom:20px;max-height:none;white-space:pre-wrap}
+.usage{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:22px;margin-top:26px}
+.usage h4{margin:0 0 6px;font-family:var(--display);font-size:15px;font-weight:700}
+.usage p{font-size:13px;color:var(--ink-2)}
+
+footer{
+  margin-top:60px;padding-top:20px;border-top:1px solid var(--rule);
+  font-family:var(--mono);font-size:11px;color:var(--ink-3);
+  display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
+}
+
+.halo{position:relative;display:grid;place-items:center}
+.halo::after{
+  content:"";position:absolute;inset:-4px;border-radius:999px;
+  border:1.5px dashed currentColor;opacity:.55;animation:spin 7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.halo::after{animation:none}}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%);
+  background:var(--ink);color:var(--paper);padding:9px 18px;border-radius:999px;
+  font-size:13px;font-weight:600;box-shadow:var(--lift);opacity:0;pointer-events:none;
+  transition:opacity .2s, transform .2s;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(-4px)}
+</style>
+
+<div class="wrap">
+  <header class="mast">
+    <div>
+      <p class="eyebrow">Avatar kit · soft-body renders · v1</p>
+      <h1>Coworker Cast</h1>
+      <p class="lede">Fourteen shapes for giving AI coworkers a face. Each one is a single inline SVG — lit from the upper left, with a bounce rim off the lower right — so it holds its volume from 16&nbsp;px in a list to 200&nbsp;px on a profile.</p>
+    </div>
+    <div class="mast-meta">
+      <span><b>14</b> shapes</span>
+      <span><b>14</b> hues</span>
+      <span><b>196</b> combinations</span>
+      <span><b>~1.6 KB</b> each, no images</span>
+    </div>
+  </header>
+
+  <div class="strip" id="strip"></div>
+
+  <main class="sheet">
+    <section>
+      <div class="sec-head">
+        <h2>The cast</h2>
+        <p class="sec-note">Pick one to inspect &amp; recolor</p>
+      </div>
+      <div class="grid" id="cast"></div>
+    </section>
+
+    <aside class="inspector">
+      <div class="insp-stage">
+        <div id="insp-av"></div>
+        <div class="insp-id">
+          <h3 id="insp-name">Pebble</h3>
+          <p class="sub"><span id="insp-slug">pebble</span> · <span class="swatch-name" id="insp-color">Coral</span> · <span id="insp-hex">#000</span></p>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lab">Colour</span>
+        <div class="swatches" id="swatches"></div>
+        <div class="hue-row">
+          <input type="range" id="hue" min="0" max="359" step="1" aria-label="Hue">
+          <span class="hue-val" id="hue-val">6°</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lab">Options</span>
+        <div class="toggles">
+          <button class="tg" id="tg-eyes" aria-pressed="true">Eyes</button>
+          <button class="tg" id="tg-shadow" aria-pressed="true">Cast shadow</button>
+          <button class="tg" id="tg-motion" aria-pressed="true">Idle motion</button>
+        </div>
+      </div>
+
+      <div class="field">
+        <span class="lab">Holds up at</span>
+        <div class="ramp" id="ramp"></div>
+      </div>
+
+      <div class="actions">
+        <button class="btn" id="copy-svg">Copy SVG</button>
+        <button class="btn ghost" id="copy-path">Copy path only</button>
+      </div>
+    </aside>
+  </main>
+
+  <section class="insitu">
+    <div class="sec-head">
+      <h2>In a real roster</h2>
+      <p class="sec-note">Shape and hue derived from the coworker's name, so they stay stable across sessions</p>
+    </div>
+    <div class="insitu-grid">
+      <div class="app">
+        <div class="app-bar"><span class="t">Teammates</span><span class="c">6 active · 2 need you</span></div>
+        <div id="roster"></div>
+      </div>
+      <div class="side">
+        <div class="app">
+          <div class="app-bar"><span class="t">Face pile</span><span class="c">on a shared task</span></div>
+          <div class="pile" id="pile"></div>
+          <p class="note">Overlapped at 44&nbsp;px the silhouettes stay separable without a ring or a border — that's what the different shapes buy you. A page of same-shaped circles needs colour alone to carry the difference.</p>
+        </div>
+        <div class="app">
+          <div class="app-bar"><span class="t">Status</span><span class="c">form, not just colour</span></div>
+          <div class="row"><div class="halo" style="color:#2E7D6B" id="st-1"></div><div class="row-mid"><div class="row-name">Working</div><div class="row-last">Dashed ring, slow rotation</div></div></div>
+          <div class="row"><div id="st-2"></div><div class="row-mid"><div class="row-name">Needs you</div><div class="row-last">Amber chip on the row</div></div></div>
+          <div class="row"><div id="st-3" style="opacity:.45"></div><div class="row-mid"><div class="row-name">Idle</div><div class="row-last">Dimmed, motion paused</div></div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="handoff">
+    <div class="sec-head">
+      <h2>Handoff</h2>
+      <p class="sec-note">No dependencies, no build step, no image assets</p>
+    </div>
+    <div class="code-grid">
+      <div>
+        <p class="code-lab">Install</p>
+        <pre>npm i @thelve/coworkers</pre>
+        <p class="code-lab">One coworker</p>
+        <pre>import { avatarSVG } from "@thelve/coworkers";
+import "@thelve/coworkers/avatar.css";
+
+el.innerHTML = avatarSVG({ name: "Call QA" });</pre>
+      </div>
+      <div>
+        <p class="code-lab">React</p>
+        <pre>import { Avatar } from "@thelve/coworkers/react";
+import "@thelve/coworkers/avatar.css";
+
+&lt;Avatar name={coworker.name} size={36} /&gt;</pre>
+        <p class="code-lab">Overriding</p>
+        <pre>avatarSVG({ shape: "bean", hue: 174, size: 96 })
+avatarSVG({ name: "Inbox Triage", eyes: false })</pre>
+      </div>
+    </div>
+    <div class="usage">
+      <div>
+        <h4>Drop it in</h4>
+        <p><code>avatarSVG({ name: 'Call QA' })</code> returns a complete SVG string — shape and hue hashed from the name, so the same coworker looks the same everywhere. Pass <code>shape</code> and <code>hue</code> to override.</p>
+      </div>
+      <div>
+        <h4>In React</h4>
+        <p>Wrap it: <code>&lt;span dangerouslySetInnerHTML={{__html: avatarSVG({name, size})}} /&gt;</code>. Every gradient id is namespaced per instance, so a hundred on one page never collide.</p>
+      </div>
+      <div>
+        <h4>Sizing &amp; motion</h4>
+        <p>The SVG has no intrinsic size — set <code>width</code>/<code>height</code> in CSS. Idle float, specular drift and blink are CSS keyframes on <code>.av-body</code>, <code>.av-spec</code> and <code>.av-eyes</code>; they already honour <code>prefers-reduced-motion</code>.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Coworker Cast — 14 soft-body shapes</span>
+    <span>Light: upper-left key, lower-right bounce, 8% ambient</span>
+  </footer>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script type="module">
+import { SHAPES, PALETTE, avatarSVG, buildPath, toHex } from "../src/index.js";
+
+/* ==================== page ==================== */
+const $ = s => document.querySelector(s);
+const state = { shape:"pebble", color:PALETTE[0], hue:PALETTE[0].h, eyes:true, shadow:true, motion:true };
+
+/* ---- masthead strip ---- */
+$("#strip").innerHTML = SHAPES.map((s, i) => {
+  const p = PALETTE[i];
+  return avatarSVG({ shape:s.id, hue:p.h, sat:p.s, lum:p.l });
+}).join("");
+
+/* ---- cast grid ---- */
+$("#cast").innerHTML = SHAPES.map((s, i) => {
+  const p = PALETTE[i];
+  return '<button class="tile" data-shape="' + s.id + '" data-i="' + i + '" aria-pressed="false">'
+       + avatarSVG({ shape:s.id, hue:p.h, sat:p.s, lum:p.l })
+       + '<span class="tile-name">' + s.name + '</span>'
+       + '<span class="tile-blurb">' + s.blurb + '</span></button>';
+}).join("");
+
+/* ---- swatches ---- */
+$("#swatches").innerHTML = PALETTE.map((p, i) =>
+  '<button class="sw" data-i="' + i + '" aria-pressed="false" title="' + p.name + '" aria-label="' + p.name + '"'
+  + ' style="background:hsl(' + p.h + ' ' + p.s + '% ' + p.l + '%)"></button>').join("");
+
+/* ---- roster ---- */
+const ROSTER = [
+  { name:"Call QA",          last:"flagged 3 calls where the caller had to repeat the PIN", time:"11:04", status:"need" },
+  { name:"Simulation Runner",last:"40 sims on the new squad — 2 regressions in handoff",     time:"10:22", status:"work" },
+  { name:"Knowledge Sync",   last:"re-crawled the help centre, 12 articles changed",         time:"9:47",  status:"work" },
+  { name:"Inbox Triage",     last:"inbox at zero, 5 drafts parked for tomorrow",             time:"9:30",  status:"idle" },
+  { name:"Release Notes",    last:"draft is ready for your read, held for approval",         time:"8:15",  status:"need" },
+  { name:"Pipeline Watch",   last:"nightly run green, nothing outstanding",                  time:"6:02",  status:"idle" }
+];
+const CHIP = { work:'<span class="chip work">working</span>', need:'<span class="chip need">needs you</span>', idle:"" };
+$("#roster").innerHTML = ROSTER.map(r =>
+  '<div class="row' + (r.status === "idle" ? " still" : "") + '"' + (r.status === "idle" ? ' style="opacity:.62"' : "") + '>'
+  + avatarSVG({ name:r.name })
+  + '<div class="row-mid"><div class="row-name">' + r.name + CHIP[r.status] + '</div>'
+  + '<div class="row-last">' + r.last + '</div></div>'
+  + '<div class="row-time">' + r.time + '</div></div>').join("");
+
+$("#pile").innerHTML = ROSTER.slice(0, 5).map(r => avatarSVG({ name:r.name })).join("")
+  + '<div class="pile-more">+3</div>';
+
+$("#st-1").innerHTML = avatarSVG({ name:"Simulation Runner", size:34, shadow:false });
+$("#st-2").innerHTML = avatarSVG({ name:"Call QA", size:34, shadow:false });
+$("#st-3").innerHTML = avatarSVG({ name:"Pipeline Watch", size:34, shadow:false });
+$("#st-3").classList.add("still");
+
+/* ---- inspector ---- */
+function currentSVG(extra){
+  return avatarSVG(Object.assign({
+    shape: state.shape, hue: state.hue, sat: state.color.s, lum: state.color.l,
+    eyes: state.eyes, shadow: state.shadow
+  }, extra || {}));
+}
+
+function render(){
+  const sp = SHAPES.find(s => s.id === state.shape);
+  $("#insp-av").innerHTML = currentSVG();
+  $("#insp-av").firstChild.style.width = $("#insp-av").firstChild.style.height = "132px";
+  $("#insp-av").classList.toggle("still", !state.motion);
+  $("#insp-name").textContent = sp.name;
+  $("#insp-slug").textContent = sp.id;
+  $("#insp-color").textContent = state.hue === state.color.h ? state.color.name : "custom " + state.hue + "°";
+  $("#insp-hex").textContent = toHex(state.hue, state.color.s, state.color.l);
+  $("#hue").value = state.hue;
+  $("#hue-val").textContent = state.hue + "°";
+
+  $("#ramp").innerHTML = [64, 40, 28, 20, 16].map(px =>
+    '<div class="ramp-item"><span style="display:block;width:' + px + 'px;height:' + px + 'px">'
+    + currentSVG() + '</span><span class="px">' + px + '</span></div>').join("");
+  $("#ramp").querySelectorAll("svg").forEach(s => { s.style.width = "100%"; s.style.height = "100%"; });
+  $("#ramp").classList.toggle("still", !state.motion);
+
+  document.querySelectorAll(".tile").forEach(t =>
+    t.setAttribute("aria-pressed", String(t.dataset.shape === state.shape)));
+  document.querySelectorAll(".sw").forEach((s, i) =>
+    s.setAttribute("aria-pressed", String(PALETTE[i] === state.color && state.hue === state.color.h)));
+
+  document.documentElement.style.setProperty("--sel", toHex(state.hue, Math.min(state.color.s, 72), Math.min(Math.max(state.color.l, 46), 62)));
+  document.documentElement.style.setProperty("--sel-wash",
+    "hsl(" + state.hue + " " + state.color.s + "% " + state.color.l + "% / .09)");
+}
+
+$("#cast").addEventListener("click", e => {
+  const t = e.target.closest(".tile"); if (!t) return;
+  state.shape = t.dataset.shape;
+  state.color = PALETTE[+t.dataset.i];
+  state.hue = state.color.h;
+  render();
+});
+$("#swatches").addEventListener("click", e => {
+  const b = e.target.closest(".sw"); if (!b) return;
+  state.color = PALETTE[+b.dataset.i]; state.hue = state.color.h; render();
+});
+$("#hue").addEventListener("input", e => { state.hue = +e.target.value; render(); });
+
+function toggle(id, key){
+  $(id).addEventListener("click", () => {
+    state[key] = !state[key];
+    $(id).setAttribute("aria-pressed", String(state[key]));
+    render();
+  });
+}
+toggle("#tg-eyes", "eyes"); toggle("#tg-shadow", "shadow"); toggle("#tg-motion", "motion");
+
+/* ---- copy ---- */
+let toastT;
+function toast(msg){
+  const el = $("#toast"); el.textContent = msg; el.classList.add("on");
+  clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 1500);
+}
+function copy(text, msg){
+  const done = () => toast(msg);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done, () => fallback(text, done));
+  } else fallback(text, done);
+}
+function fallback(text, done){
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); done(); }
+  catch (e) { toast("Press ⌘C to copy"); }
+  document.body.removeChild(ta);
+}
+$("#copy-svg").addEventListener("click", () => copy(currentSVG({ size:96 }), "SVG copied"));
+$("#copy-path").addEventListener("click", () =>
+  copy(buildPath(SHAPES.find(s => s.id === state.shape)), "Path copied"));
+
+render();
+</script>
