@@ -3,7 +3,12 @@
 Soft-body avatars for AI coworkers. Fourteen shapes, fourteen hues, one inline
 SVG each — no dependencies, no build step, no image assets.
 
-<img src="docs/cast.svg" alt="The fourteen shapes: Pebble, Orb, Capsule, Squircle, Dome, Bean, Egg, Wedge, Gem, Barrel, Puff, Clover, Bumper, Spark" width="100%">
+<a href="https://eisenzopf.github.io/Thelve-coworkers/demo/">
+  <img src="docs/cast.svg" alt="The fourteen shapes: Pebble, Orb, Capsule, Squircle, Dome, Bean, Egg, Wedge, Gem, Barrel, Puff, Clover, Bumper, Spark" width="100%">
+</a>
+
+**[Open the live gallery →](https://eisenzopf.github.io/Thelve-coworkers/demo/)** — every shape and hue, a depth slider from flat
+to fully rendered, and a mock roster to see them at real UI sizes.
 
 A roster of AI agents needs faces that are told apart at a glance. Colour alone
 stops working the moment two of them sit next to each other in a 32 px list, or
@@ -144,7 +149,10 @@ npm run contact-sheet   # regenerate docs/cast.svg
 ```
 
 The demo imports straight from `src/`, so it is a real consumer of the library
-rather than a copy of it.
+rather than a copy of it — which is also why it can be served as-is from GitHub
+Pages at [eisenzopf.github.io/Thelve-coworkers/demo/](https://eisenzopf.github.io/Thelve-coworkers/demo/),
+with no build and nothing behind it. The local server exists only because
+browsers refuse ES module imports over `file://`.
 
 ```
 src/
