@@ -86,13 +86,19 @@ test("the interval stops are ordered, with an off switch", () => {
   assert.match(CSS, /\[data-av-jump="never"\] \[data-status="needs"\] \.av-body \{ animation: none/);
 });
 
-test("the lean tracks the eye rate, not a body rate", () => {
-  // The lean exists only to follow the gaze. On a separate tempo the head would
-  // stop turning with the eyes, which is the whole effect.
-  const lean = /\[data-status="working"\] \.av-body \{([\s\S]*?)\n\}/.exec(CSS)[1];
-  assert.match(lean, /--av-cycle-lean: calc\(8\.5s \/ var\(--av-eye-rate/);
+test("the eye tempo drives every eye animation", () => {
   const scan = /\[data-status="working"\] \.av-look \{([\s\S]*?)\n\}/.exec(CSS)[1];
-  assert.match(scan, /--av-cycle: calc\(8\.5s \/ var\(--av-eye-rate/);
+  const glance = /\[data-status="needs"\] \.av-look \{([\s\S]*?)\n\}/.exec(CSS)[1];
+  for (const [name, rule] of [["scan", scan], ["glance", glance]]) {
+    assert.match(rule, /--av-cycle: calc\(8\.5s \/ var\(--av-eye-rate/, name);
+  }
+});
+
+test("the working body is only the ambient float", () => {
+  // A turn of the head was invisible at list sizes and cost a second animation
+  // on every row, so working no longer overrides the body at all.
+  assert.ok(!CSS.includes("av-lean"), "no lean keyframes or references");
+  assert.ok(!/\[data-status="working"\] \.av-body/.test(CSS), "no working body override");
 });
 
 test("--av-body-rate is gone; ambient drift is not a knob", () => {

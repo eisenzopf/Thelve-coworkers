@@ -97,16 +97,16 @@ export declare function phaseFor(name: string): number;
  * can change without an avatar being rebuilt.
  *
  * ```html
- * <div data-status="working" style="--av-eye-rate: 1.4; --av-body-rate: .7">
+ * <div data-status="working" data-av-halos="needs" style="--av-eye-rate: 1.4">
  * ```
  *
  * | | |
  * |---|---|
  * | `data-status` | `"working" \| "needs" \| "idle"` |
- * | `data-av-halos` | `"all"` (default) `\| "needs" \| "none"` |
- * | `data-av-off` | space-separated: `eyes`, `body`, `halo` |
- * | `--av-eye-rate` | tempo multiplier, 1 = default, 2 = twice as often |
- * | `--av-body-rate` | as above, for float, lean and hop |
+ * | `data-av-halos` | rings are opt-in: `"needs" \| "all"`; default is none |
+ * | `data-av-jump` | `"often"` 6 s `\| "normal"` 12 s (default) `\| "rare"` 24 s `\| "never"` |
+ * | `data-av-off` | space-separated: `eyes`, `body` |
+ * | `--av-eye-rate` | eye tempo, 1 = default, 2 = twice as often, 0 = off |
  * | `--av-gaze-x` / `--av-gaze-y` | resting eye direction, −1 … 1 |
  * | `--av-working` / `--av-needs` | ring colours |
  */

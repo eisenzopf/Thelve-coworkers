@@ -59,16 +59,9 @@
 }
 
 /* ---------- working ----------
-   Scanning something. The eyes lead, the body follows. */
-
-[data-status="working"] .av-body {
-  --av-cycle: 5.4s;
-  --av-cycle-lean: calc(8.5s / var(--av-eye-rate, 1));
-  animation: av-float var(--av-cycle) ease-in-out infinite,
-             av-lean var(--av-cycle-lean) ease-in-out infinite;
-  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
-                   calc(var(--av-phase, 0) * var(--av-cycle-lean) * -1);
-}
+   Scanning something. The body keeps the ambient float from the base rule; at
+   list sizes a turn of the head was invisible and cost a second animation on
+   every row. */
 
 [data-status="working"] .av-look {
   --av-cycle: calc(8.5s / var(--av-eye-rate, 1));
@@ -213,15 +206,6 @@
   43%, 55%  { transform: translate(-1.6px, 1.5px); }
   56%, 78%  { transform: translate(1.9px, 1.1px); }
   79%, 100% { transform: translate(-.5px, -.9px); }
-}
-
-/* The body follows the eyes ~120 ms late and at a fifth of the throw. */
-@keyframes av-lean {
-  0%,    22.3% { rotate: -1.4deg; }
-  23.3%, 44.3% { rotate: 1.5deg; }
-  45.3%, 57.3% { rotate: -1deg; }
-  58.3%, 80.3% { rotate: 1.2deg; }
-  81.3%, 100%  { rotate: -.4deg; }
 }
 
 @keyframes av-glance {
