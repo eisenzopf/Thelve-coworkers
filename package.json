@@ -20,7 +20,8 @@
     "src",
     "index.d.ts",
     "react.d.ts",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "sideEffects": false,
   "engines": {
@@ -46,5 +47,16 @@
     "identicon",
     "ui"
   ],
-  "private": true
+  "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eisenzopf/Thelve-coworkers.git"
+  },
+  "homepage": "https://github.com/eisenzopf/Thelve-coworkers#readme",
+  "bugs": {
+    "url": "https://github.com/eisenzopf/Thelve-coworkers/issues"
+  }
 }

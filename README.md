@@ -156,3 +156,7 @@ src/
   react.js       optional React binding, no JSX
 demo/index.html  gallery, inspector, roster
 ```
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).
