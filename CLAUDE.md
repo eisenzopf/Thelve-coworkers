@@ -41,6 +41,15 @@ npm run contact-sheet   # regenerate docs/cast.svg after changing shapes or hues
 - **`--av-cycle` is declared on the element that uses it**, not at `:root`. A
   custom property that references `var(--av-eye-rate)` bakes in the rate where
   it is *declared*, so hoisting it would make ancestor overrides silently dead.
+- **A frequency control must not change speed.** `data-av-jump` picks between
+  `av-hop-6/12/24`, each authored so the active window is the same 660 ms.
+  Scaling one set of keyframes by duration would make the jump itself faster —
+  the bug this replaced. Regenerate the keyframes rather than hand-editing them.
+- **The lean rides `--av-eye-rate`, not a body tempo.** It exists only to follow
+  the gaze; on a separate clock the head stops turning with the eyes.
+- **Rings are opt-in** (`data-av-halos`). Default rosters have no ring, so the
+  hidden per-row label is the only status channel a screen reader or a
+  reduced-motion user gets.
 - **Status is CSS and must stay that way.** `data-status` on the avatar or any
   ancestor. Moving it into `avatarSVG` would mean rebuilding markup every time a
   coworker changes state.

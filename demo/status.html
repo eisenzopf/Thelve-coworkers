@@ -128,11 +128,11 @@ footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-fa
   <div class="console" id="console">
     <div class="knobs">
       <div class="knob">
-        <span class="lab">Halos <span class="val" id="halo-val">all</span></span>
+        <span class="lab">Halos <span class="val" id="halo-val">none</span></span>
         <div class="seg" id="halos">
-          <button data-v="all" aria-pressed="true">All</button>
+          <button data-v="none" aria-pressed="true">None</button>
           <button data-v="needs" aria-pressed="false">Needs&nbsp;only</button>
-          <button data-v="none" aria-pressed="false">None</button>
+          <button data-v="all" aria-pressed="false">All</button>
         </div>
       </div>
       <div class="knob">
@@ -140,8 +140,13 @@ footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-fa
         <input type="range" id="eye" min="0" max="2" step=".1" value="1" aria-label="Eye movement rate">
       </div>
       <div class="knob">
-        <span class="lab">Body rate <span class="val" id="body-val">1.0× · default</span></span>
-        <input type="range" id="body" min="0" max="2" step=".1" value="1" aria-label="Body movement rate">
+        <span class="lab">Jump every <span class="val" id="jump-val">12 s</span></span>
+        <div class="seg" id="jump">
+          <button data-v="often" aria-pressed="false">6&nbsp;s</button>
+          <button data-v="normal" aria-pressed="true">12&nbsp;s</button>
+          <button data-v="rare" aria-pressed="false">24&nbsp;s</button>
+          <button data-v="never" aria-pressed="false">Never</button>
+        </div>
       </div>
     </div>
     <div class="out">
@@ -159,8 +164,8 @@ footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 
   <section class="sec">
     <div class="sec-head"><h2>Phase spread</h2>
-      <p class="sec-note">Twelve coworkers, all working. Each one holds a fixed slot in the cycle derived from its name, so they never move in unison — and because the slot is a fraction rather than a number of seconds, that stays true at any rate.</p></div>
-    <div class="strip" id="spread"></div>
+      <p class="sec-note">Twelve coworkers, all working, rings forced on. Each one holds a fixed slot in the cycle derived from its name, so they never move in unison — and because the slot is a fraction rather than a number of seconds, that stays true at any rate.</p></div>
+    <div class="strip" id="spread" data-av-halos="all"></div>
   </section>
 
   <section class="sec">
@@ -174,8 +179,8 @@ footer{margin-top:54px;padding-top:18px;border-top:1px solid var(--rule);font-fa
 
   <section class="sec">
     <div class="sec-head"><h2>What survives when motion doesn't</h2>
-      <p class="sec-note">Reduced motion, a screenshot, a print, the first paint. The rings differ in form — dashed, solid, absent — not only in colour, so status never depends on movement alone.</p></div>
-    <div class="fallback still" id="fallback"></div>
+      <p class="sec-note">Reduced motion, a screenshot, a print, the first paint. Shown with rings forced on: they differ in form — dashed, solid, absent — not only in colour. With rings off, nothing visual is left here, so keep a hidden label on each row either way.</p></div>
+    <div class="fallback still" id="fallback" data-av-halos="all"></div>
   </section>
 
   <section class="sec">
@@ -203,17 +208,18 @@ import { avatarSVG, phaseFor } from "../src/index.js";
 
 const $ = (s) => document.querySelector(s);
 const root = document.documentElement;
-const state = { halos: "all", eye: 1, body: 1 };
+const state = { halos: "none", eye: 1, jump: "normal" };
+const JUMP_LABEL = { often: "6 s", normal: "12 s", rare: "24 s", never: "never" };
 
 const STATUSES = [
   { id:"working", name:"Working", who:"Simulation Runner",
-    halo:"Dashed ring, one turn every 7 s",
+    halo:"Dashed ring, one turn every 7 s — opt-in",
     body:"Float, plus a lean following the eyes 120 ms late at a fifth of the throw",
-    eyes:"Five saccades per 5.2 s — hold, then a 50 ms jump",
+    eyes:"Five saccades per 8.5 s — hold, then a 50 ms jump",
     blink:"Every 10.5 s — concentration suppresses blinking" },
   { id:"needs", name:"Needs you", who:"Call QA",
-    halo:"Solid ring, pings outward every 2.6 s",
-    body:"Two hops with squash and stretch, then five seconds of rest",
+    halo:"Solid ring that pings outward — opt-in",
+    body:"660 ms of hop — always that, however far apart you set them",
     eyes:"A glance left and right, then settles looking out at you",
     blink:"Every 4.6 s — alert, not focused" },
   { id:"idle", name:"Idle", who:"Pipeline Watch",
@@ -281,42 +287,44 @@ const word = (v) => v === 0 ? "off" : v < .7 ? "calm" : v > 1.4 ? "busy" : "defa
 
 function apply(){
   root.dataset.avHalos = state.halos;
+  root.dataset.avJump = state.jump;
   root.style.setProperty("--av-eye-rate", state.eye || 1);
-  root.style.setProperty("--av-body-rate", state.body || 1);
   // Rate 0 is an off switch, not a division by zero — and switching it off
   // returns the eyes to their gaze rest position instead of freezing mid-jump.
-  const off = [state.eye === 0 && "eyes", state.body === 0 && "body"].filter(Boolean).join(" ");
-  if (off) root.dataset.avOff = off; else delete root.dataset.avOff;
+  if (state.eye === 0) root.dataset.avOff = "eyes"; else delete root.dataset.avOff;
 
   $("#halo-val").textContent = state.halos;
   $("#eye-val").textContent = `${state.eye.toFixed(1)}× · ${word(state.eye)}`;
-  $("#body-val").textContent = `${state.body.toFixed(1)}× · ${word(state.body)}`;
+  $("#jump-val").textContent = JUMP_LABEL[state.jump];
   $("#eye").value = state.eye;
-  $("#body").value = state.body;
-  document.querySelectorAll("#halos button").forEach(b =>
-    b.setAttribute("aria-pressed", String(b.dataset.v === state.halos)));
+  for (const [id, key] of [["#halos", "halos"], ["#jump", "jump"]]) {
+    document.querySelectorAll(`${id} button`).forEach(b =>
+      b.setAttribute("aria-pressed", String(b.dataset.v === state[key])));
+  }
   $("#config").textContent = configText();
 }
 
 function configText(){
-  const attrs = [`data-status="working"`];
-  if (state.halos !== "all") attrs.push(`data-av-halos="${state.halos}"`);
-  const off = [state.eye === 0 && "eyes", state.body === 0 && "body"].filter(Boolean).join(" ");
-  if (off) attrs.push(`data-av-off="${off}"`);
-  const vars = [];
-  if (state.eye !== 1 && state.eye !== 0) vars.push(`--av-eye-rate: ${state.eye}`);
-  if (state.body !== 1 && state.body !== 0) vars.push(`--av-body-rate: ${state.body}`);
-  if (vars.length) attrs.push(`style="${vars.join("; ")}"`);
-  return `<div ${attrs.join(" ")}>`;
+  // Only what differs from the defaults, so the snippet stays the short thing
+  // you actually paste.
+  const attrs = [];
+  if (state.halos !== "none") attrs.push(`data-av-halos="${state.halos}"`);
+  if (state.jump !== "normal") attrs.push(`data-av-jump="${state.jump}"`);
+  if (state.eye === 0) attrs.push(`data-av-off="eyes"`);
+  else if (state.eye !== 1) attrs.push(`style="--av-eye-rate: ${state.eye}"`);
+  return attrs.length ? `<div ${attrs.join(" ")}>` : `<div>   <!-- all defaults -->`;
 }
 
-$("#halos").addEventListener("click", e => {
-  const b = e.target.closest("[data-v]"); if (!b) return;
-  state.halos = b.dataset.v; apply();
-});
+for (const [id, key] of [["#halos", "halos"], ["#jump", "jump"]]) {
+  $(id).addEventListener("click", e => {
+    const b = e.target.closest("[data-v]"); if (!b) return;
+    state[key] = b.dataset.v; apply();
+  });
+}
 $("#eye").addEventListener("input", e => { state.eye = +e.target.value; apply(); });
-$("#body").addEventListener("input", e => { state.body = +e.target.value; apply(); });
-$("#reset").addEventListener("click", () => { state.halos = "all"; state.eye = 1; state.body = 1; apply(); });
+$("#reset").addEventListener("click", () => {
+  state.halos = "none"; state.eye = 1; state.jump = "normal"; apply();
+});
 
 let t;
 $("#copy").addEventListener("click", async () => {

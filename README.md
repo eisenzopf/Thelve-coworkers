@@ -107,19 +107,24 @@ one attribute, and nothing is rebuilt.
 | Hook | |
 |---|---|
 | `data-status` | `working` · `needs` · `idle` |
-| `data-av-halos` | `all` (default) · `needs` · `none` |
-| `data-av-off` | space-separated: `eyes`, `body`, `halo` |
-| `--av-eye-rate` | tempo multiplier — `1` default, `2` twice as often, `0` off |
-| `--av-body-rate` | as above, for float, lean and hop |
+| `data-av-halos` | rings are opt-in — `needs` · `all`; default is no ring |
+| `data-av-jump` | how often needs-you hops — `often` (6 s) · `normal` (12 s, default) · `rare` (24 s) · `never` |
+| `data-av-off` | space-separated: `eyes`, `body` |
+| `--av-eye-rate` | eye tempo — `1` default, `2` twice as often, `0` off |
 | `--av-gaze-x` / `--av-gaze-y` | resting eye direction, −1 … 1 |
 | `--av-working` / `--av-needs` | ring colours |
 
-**The rings are the primary channel, not the motion.** Motion is invisible
-under `prefers-reduced-motion`, in screenshots, in print, and before animations
-start — so the three rings differ in *form*, dashed against solid against
-absent, and stay drawn when everything stops. Motion is the second channel that
-makes status pre-attentive. Rows should still carry a hidden label for screen
-readers; they get no channel at all otherwise.
+**Frequency is not speed.** `data-av-jump` changes how often a coworker hops,
+never how fast the hop is: the jump is always the same 660 ms of movement, so
+each interval carries its own keyframes with the percentages recomputed rather
+than simply stretching the duration. A test fails the build if that window
+drifts.
+
+**Accessibility.** Rings default to off, so on a default roster there is nothing
+visual left under `prefers-reduced-motion` — give each row a visually-hidden
+label. Switch rings on and they become the channel that survives reduced
+motion, screenshots and print, which is why the three differ in *form* —
+dashed, solid, absent — and not merely in colour.
 
 ### Nothing moves in unison
 
@@ -128,7 +133,7 @@ from its name. Each animated rule offsets itself by that fraction.
 
 A *fraction*, not a number of seconds — that is the part that matters. An
 absolute delay stops spreading anything the moment a duration changes, so
-turning `--av-body-rate` up would slide a roster back into step. A fraction
+turning `--av-eye-rate` up would slide a roster back into step. A fraction
 rescales with whatever duration it lands on, and the spread holds at any tempo.
 
 Hashing is stable as a roster changes but stateless, so it cannot guarantee

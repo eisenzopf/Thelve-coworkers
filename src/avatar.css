@@ -4,10 +4,11 @@
    Everything here is driven from outside the SVG:
 
      data-status="working|needs|idle"   on the avatar or any ancestor
-     --av-eye-rate   / --av-body-rate   tempo multipliers, 1 = default, 2 = twice as often
+     data-av-halos="all|needs"          rings are opt-in; the default is none
+     data-av-jump="often|normal|rare|never"   how often needs-you hops
+     --av-eye-rate                      eye tempo, 1 = default, 2 = twice as often
      --av-gaze-x     / --av-gaze-y      resting eye direction, -1 … 1
-     data-av-halos="all|needs|none"     which statuses show a ring
-     data-av-off="eyes body halo"       hard off switches
+     data-av-off="eyes body"            hard off switches
 
    Status never touches the SVG, so a roster can change state without any avatar
    being rebuilt, and transitions stay in the compositor. */
@@ -40,13 +41,13 @@
 
 .av-body {
   transform-origin: 50px 52px;
-  --av-cycle: calc(5.4s / var(--av-body-rate, 1));
+  --av-cycle: 5.4s;
   animation: av-float var(--av-cycle) ease-in-out infinite;
   animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
 }
 
 .av-spec {
-  --av-cycle: calc(5.4s / var(--av-body-rate, 1));
+  --av-cycle: 5.4s;
   animation: av-spec var(--av-cycle) ease-in-out infinite;
   animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
 }
@@ -61,8 +62,8 @@
    Scanning something. The eyes lead, the body follows. */
 
 [data-status="working"] .av-body {
-  --av-cycle: calc(5.4s / var(--av-body-rate, 1));
-  --av-cycle-lean: calc(5.2s / var(--av-body-rate, 1));
+  --av-cycle: 5.4s;
+  --av-cycle-lean: calc(8.5s / var(--av-eye-rate, 1));
   animation: av-float var(--av-cycle) ease-in-out infinite,
              av-lean var(--av-cycle-lean) ease-in-out infinite;
   animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
@@ -70,7 +71,7 @@
 }
 
 [data-status="working"] .av-look {
-  --av-cycle: calc(5.2s / var(--av-eye-rate, 1));
+  --av-cycle: calc(8.5s / var(--av-eye-rate, 1));
   animation: av-scan var(--av-cycle) linear infinite;
   animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
 }
@@ -83,7 +84,6 @@
 }
 
 [data-status="working"] .av-halo {
-  display: block;
   color: var(--av-working, #2E7D6B);
   stroke-dasharray: 5 7;
   opacity: .75;
@@ -95,18 +95,38 @@
 /* ---------- needs you ----------
    Asks for attention, then stops asking. */
 
-[data-status="needs"] .av-body {
-  /* A hop pivots on the ground, not on the middle of the body. */
-  transform-origin: 50px 86px;
-  --av-cycle: calc(5.5s / var(--av-body-rate, 1));
-  animation: av-hop var(--av-cycle) cubic-bezier(.3, 0, .35, 1) infinite,
-             av-squash var(--av-cycle) ease-out infinite;
+/* A hop pivots on the ground, not on the middle of the body. */
+[data-status="needs"] .av-body { transform-origin: 50px 86px; }
+
+[data-status="needs"] .av-body,
+[data-av-jump="normal"] [data-status="needs"] .av-body {
+  --av-cycle: 12s;
+  animation: av-hop-12 var(--av-cycle) cubic-bezier(.3, 0, .35, 1) infinite,
+             av-squash-12 var(--av-cycle) ease-out infinite;
   animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
                    calc(var(--av-phase, 0) * var(--av-cycle) * -1);
 }
 
+[data-av-jump="often"] [data-status="needs"] .av-body {
+  --av-cycle: 6s;
+  animation: av-hop-6 var(--av-cycle) cubic-bezier(.3, 0, .35, 1) infinite,
+             av-squash-6 var(--av-cycle) ease-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
+                   calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+[data-av-jump="rare"] [data-status="needs"] .av-body {
+  --av-cycle: 24s;
+  animation: av-hop-24 var(--av-cycle) cubic-bezier(.3, 0, .35, 1) infinite,
+             av-squash-24 var(--av-cycle) ease-out infinite;
+  animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1),
+                   calc(var(--av-phase, 0) * var(--av-cycle) * -1);
+}
+
+[data-av-jump="never"] [data-status="needs"] .av-body { animation: none; }
+
 [data-status="needs"] .av-look {
-  --av-cycle: calc(5.5s / var(--av-eye-rate, 1));
+  --av-cycle: calc(8.5s / var(--av-eye-rate, 1));
   animation: av-glance var(--av-cycle) linear infinite;
   animation-delay: calc(var(--av-phase, 0) * var(--av-cycle) * -1);
 }
@@ -118,7 +138,6 @@
 }
 
 [data-status="needs"] .av-halo {
-  display: block;
   color: var(--av-needs, #C05621);
   --av-cycle: 2.6s;
   animation: av-halo-ping var(--av-cycle) ease-out infinite;
@@ -136,13 +155,15 @@
 
 /* ---------- switches ---------- */
 
-[data-av-halos="none"] .av-halo,
-[data-av-halos="needs"] [data-status="working"] .av-halo { display: none; }
+/* Rings are opt-in. Most rosters will not want one, so nothing shows a ring
+   until a container asks — but see the note on reduced motion below. */
+[data-av-halos="all"] [data-status="working"] .av-halo,
+[data-av-halos="all"] [data-status="needs"] .av-halo,
+[data-av-halos="needs"] [data-status="needs"] .av-halo { display: block; }
 
 [data-av-off~="eyes"] .av-look,
 [data-av-off~="body"] .av-body,
 [data-av-off~="body"] .av-spec { animation: none; }
-[data-av-off~="halo"] .av-halo { display: none; }
 
 /* `still` on any ancestor freezes a subtree — an offline coworker, a print
    stylesheet, a screenshot. The rings stay drawn; only the motion stops. */
@@ -152,9 +173,11 @@
 .still .av-look,
 .still .av-halo { animation: none; }
 
-/* Motion is never the only status channel. Under reduced motion the rings are
-   still there and still differ in form — dashed, solid, absent — so status
-   survives with no movement at all. */
+/* Under reduced motion nothing moves, so any ring that is switched on becomes
+   the only visual status channel — which is why the three differ in form,
+   dashed against solid against absent, and not merely in colour. With rings off
+   (the default) there is no visual channel left at all under reduced motion, so
+   give each row a visually-hidden label whichever way you set them. */
 @media (prefers-reduced-motion: reduce) {
   .av-body, .av-spec, .av-eyes, .av-look, .av-halo { animation: none !important; }
   [data-status="needs"] .av-halo { opacity: .9; }
@@ -201,32 +224,86 @@
   81.3%, 100%  { rotate: -.4deg; }
 }
 
-/* 660 ms of hop inside a 5.5 s cycle: attention-seeking has to decay, or a list
-   of six becomes unusable. */
-@keyframes av-hop {
-  0%, 12%, 100% { translate: 0 0; }
-  2.5%          { translate: 0 -6px; }
-  5.5%          { translate: 0 0; }
-  8%            { translate: 0 -3.2px; }
-  10.5%         { translate: 0 0; }
-}
-
-@keyframes av-squash {
-  0%, 12%, 100% { scale: 1 1; }
-  1.2%          { scale: 1.07 .93; }
-  2.5%          { scale: .95 1.06; }
-  5.5%          { scale: 1.08 .92; }
-  6.8%          { scale: 1 1; }
-  8%            { scale: .97 1.04; }
-  10.5%         { scale: 1.04 .96; }
-  11.6%         { scale: 1 1; }
-}
-
 @keyframes av-glance {
   0%,  10%  { transform: translate(0, -.4px); }
   13%, 22%  { transform: translate(-2.4px, -.6px); }
   23%, 32%  { transform: translate(2.4px, -.6px); }
   33%, 100% { transform: translate(0, -.5px); }
+}
+
+/* The hop is always the same 660 ms of movement; only the gap between hops
+   changes. That means the keyframe percentages have to be recomputed per
+   interval rather than the duration simply being scaled — scaling the duration
+   would make the jump itself faster or slower, which is not what a frequency
+   control should do. test/motion.test.js checks the 660 ms window holds. */
+
+@keyframes av-hop-6 {
+  0%       { translate: 0 0; }
+  2.288%   { translate: 0 -6px; }
+  5.038%   { translate: 0 0; }
+  7.337%   { translate: 0 -3.2px; }
+  9.625%   { translate: 0 0; }
+  11%      { translate: 0 0; }
+  100%     { translate: 0 0; }
+}
+
+@keyframes av-squash-6 {
+  0%       { scale: 1 1; }
+  1.1%     { scale: 1.07 .93; }
+  2.288%   { scale: .95 1.06; }
+  5.038%   { scale: 1.08 .92; }
+  6.237%   { scale: 1 1; }
+  7.337%   { scale: .97 1.04; }
+  9.625%   { scale: 1.04 .96; }
+  10.637%  { scale: 1 1; }
+  11%      { scale: 1 1; }
+  100%     { scale: 1 1; }
+}
+
+@keyframes av-hop-12 {
+  0%       { translate: 0 0; }
+  1.144%   { translate: 0 -6px; }
+  2.519%   { translate: 0 0; }
+  3.669%   { translate: 0 -3.2px; }
+  4.812%   { translate: 0 0; }
+  5.5%     { translate: 0 0; }
+  100%     { translate: 0 0; }
+}
+
+@keyframes av-squash-12 {
+  0%       { scale: 1 1; }
+  0.55%    { scale: 1.07 .93; }
+  1.144%   { scale: .95 1.06; }
+  2.519%   { scale: 1.08 .92; }
+  3.119%   { scale: 1 1; }
+  3.669%   { scale: .97 1.04; }
+  4.812%   { scale: 1.04 .96; }
+  5.319%   { scale: 1 1; }
+  5.5%     { scale: 1 1; }
+  100%     { scale: 1 1; }
+}
+
+@keyframes av-hop-24 {
+  0%       { translate: 0 0; }
+  0.572%   { translate: 0 -6px; }
+  1.26%    { translate: 0 0; }
+  1.834%   { translate: 0 -3.2px; }
+  2.406%   { translate: 0 0; }
+  2.75%    { translate: 0 0; }
+  100%     { translate: 0 0; }
+}
+
+@keyframes av-squash-24 {
+  0%       { scale: 1 1; }
+  0.275%   { scale: 1.07 .93; }
+  0.572%   { scale: .95 1.06; }
+  1.26%    { scale: 1.08 .92; }
+  1.559%   { scale: 1 1; }
+  1.834%   { scale: .97 1.04; }
+  2.406%   { scale: 1.04 .96; }
+  2.659%   { scale: 1 1; }
+  2.75%    { scale: 1 1; }
+  100%     { scale: 1 1; }
 }
 
 @keyframes av-halo-spin { to { rotate: 360deg; } }

@@ -54,10 +54,49 @@ test("the eyes get their own group to look with", () => {
   assert.equal((svg.match(/<g[ >]/g) ?? []).length, (svg.match(/<\/g>/g) ?? []).length, "groups balance");
 });
 
-test("the status ring ships hidden, and takes its colour from the page", () => {
+test("rings are opt-in, and take their colour from the page", () => {
   const svg = avatarSVG({ name: "Call QA" });
   assert.match(svg, /<circle class="av-halo"[^>]*stroke="currentColor"/);
-  assert.match(CSS, /\.av-halo\s*\{[^}]*display:\s*none/, "hidden until a status asks for it");
+  assert.match(CSS, /\.av-halo\s*\{[^}]*display:\s*none/, "hidden by default");
+  // Nothing shows a ring until a container asks for one.
+  const shown = CSS.match(/\[data-av-halos="(all|needs)"\][^,{]*\.av-halo/g) ?? [];
+  assert.ok(shown.length >= 3, "all and needs-only both opt in");
+  assert.ok(!/^\[data-status="(working|needs)"\] \.av-halo \{[^}]*display: block/m.test(CSS),
+    "status alone never turns a ring on");
+});
+
+test("the jump keeps its speed and only changes how often it happens", () => {
+  // Scaling the cycle would stretch the jump itself. Each interval instead gets
+  // keyframes whose percentages put the same 660 ms of movement in a longer gap.
+  const found = [...CSS.matchAll(/@keyframes av-(hop|squash)-(\d+) \{([\s\S]*?)\n\}/g)];
+  assert.ok(found.length === 6, `three intervals x two tracks, got ${found.length}`);
+  for (const [, track, secs, body] of found) {
+    const stops = [...body.matchAll(/^\s*([\d.]+)%/gm)].map((m) => Number(m[1])).filter((v) => v < 100);
+    const active = (Math.max(...stops) / 100) * Number(secs);
+    assert.ok(Math.abs(active - 0.66) < 0.005,
+      `av-${track}-${secs}: active window is ${active.toFixed(3)}s, expected 0.66s`);
+  }
+});
+
+test("the interval stops are ordered, with an off switch", () => {
+  for (const [name, secs] of [["often", 6], ["normal", 12], ["rare", 24]]) {
+    const rule = new RegExp(`\\[data-av-jump="${name}"\\][^{]*\\{[^}]*--av-cycle: ${secs}s`);
+    if (name !== "normal") assert.match(CSS, rule, `${name} is ${secs}s`);
+  }
+  assert.match(CSS, /\[data-av-jump="never"\] \[data-status="needs"\] \.av-body \{ animation: none/);
+});
+
+test("the lean tracks the eye rate, not a body rate", () => {
+  // The lean exists only to follow the gaze. On a separate tempo the head would
+  // stop turning with the eyes, which is the whole effect.
+  const lean = /\[data-status="working"\] \.av-body \{([\s\S]*?)\n\}/.exec(CSS)[1];
+  assert.match(lean, /--av-cycle-lean: calc\(8\.5s \/ var\(--av-eye-rate/);
+  const scan = /\[data-status="working"\] \.av-look \{([\s\S]*?)\n\}/.exec(CSS)[1];
+  assert.match(scan, /--av-cycle: calc\(8\.5s \/ var\(--av-eye-rate/);
+});
+
+test("--av-body-rate is gone; ambient drift is not a knob", () => {
+  assert.ok(!CSS.includes("--av-body-rate"), "no leftover body-rate references");
 });
 
 test("every animated rule also sets a phase-derived delay", () => {
